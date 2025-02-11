@@ -1,0 +1,6 @@
+.ipynb_checkpoints
+.DS_Store
+*.pyc
+log.txt
+logs/
+lightning_logs/
