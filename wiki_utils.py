@@ -4,7 +4,7 @@ import requests
 from hashlib import md5
 from io import BytesIO
 
-from PIL import Image as PImage
+from PIL import Image as PImage, ImageOps as PImageOps
 from SPARQLWrapper import SPARQLWrapper
 
 PImage.MAX_IMAGE_PIXELS = None
@@ -102,4 +102,4 @@ class Wikidata:
     response = requests.get(img_url, headers={"User-Agent": cls.USER_AGENT})
     response.raise_for_status()
     pimg = PImage.open(BytesIO(response.content)).convert("RGB")
-    return pimg
+    return PImageOps.exif_transpose(pimg)
