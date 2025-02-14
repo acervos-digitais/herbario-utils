@@ -32,3 +32,14 @@ SELECT DISTINCT ?item ?image ?date ?objectLabel WHERE {
   OPTIONAL { ?item wdt:P31 ?object. }
 }
 ```
+
+```SQL
+#defaultView:Table
+SELECT DISTINCT ?qid ?depictsLabel WHERE {
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+
+  BIND(wd:Q10301958 AS ?item).
+  ?item wdt:P180 ?depicts .
+  OPTIONAL { ?depicts rdfs:label ?depictsLabel FILTER (lang(?depictsLabel) = "en") }
+}
+```

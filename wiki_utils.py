@@ -54,7 +54,7 @@ class Wikidata:
 
   @classmethod
   def prep_category_query(cls, object_label):
-    return f"""#defaultView:Table
+    return f"""
       SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date WHERE {{
       SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
       ?item wdt:P276 wd:Q371803.
@@ -65,9 +65,19 @@ class Wikidata:
       BIND(STRAFTER(STR(?item), STR(wd:)) AS ?qid).
 
       OPTIONAL {{ ?item wdt:P170 ?creator. }}
-      ### GET DEPICTS P180
       OPTIONAL {{ ?item wdt:P571 ?date. }}
       OPTIONAL {{ ?item wdt:P31 ?object. }}
+    }}
+    """
+
+  @classmethod
+  def prep_depicts_query(cls, qid):
+    return f"""
+      SELECT DISTINCT ?qid ?depictsLabel WHERE {{
+      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+      BIND(wd:{qid} AS ?item).
+      ?item wdt:P180 ?depicts .
+      OPTIONAL {{ ?depicts rdfs:label ?depictsLabel FILTER (lang(?depictsLabel) = "en") }}
     }}
     """
 
