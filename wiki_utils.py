@@ -53,31 +53,34 @@ class Wikidata:
   }
 
   @classmethod
-  def prep_category_query(cls, object_label):
+  def prep_category_query(cls, category_label):
     return f"""
-      SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date WHERE {{
+      SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date ?cat_en ?cat_pt WHERE {{
       SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
       ?item wdt:P276 wd:Q371803.
       ?item wdt:P18 ?image.
 
-      ?item wdt:P31 wd:{cls.QCODES[object_label]}.
+      ?item wdt:P31 wd:{cls.QCODES[category_label]}.
 
       BIND(STRAFTER(STR(?item), STR(wd:)) AS ?qid).
 
+      BIND(wd:{cls.QCODES[category_label]} AS ?category).
+      ?category rdfs:label ?cat_en filter (lang(?cat_en) = "en").
+      ?category rdfs:label ?cat_pt filter (lang(?cat_pt) = "pt").
+
       OPTIONAL {{ ?item wdt:P170 ?creator. }}
       OPTIONAL {{ ?item wdt:P571 ?date. }}
-      OPTIONAL {{ ?item wdt:P31 ?object. }}
     }}
     """
 
   @classmethod
-  def prep_depicts_query(cls, qid):
+  def prep_depicts_query(cls, qid, lang="en"):
     return f"""
       SELECT DISTINCT ?qid ?depictsLabel WHERE {{
-      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "{lang}". }}
       BIND(wd:{qid} AS ?item).
       ?item wdt:P180 ?depicts .
-      OPTIONAL {{ ?depicts rdfs:label ?depictsLabel FILTER (lang(?depictsLabel) = "en") }}
+      OPTIONAL {{ ?depicts rdfs:label ?depictsLabel FILTER (lang(?depictsLabel) = "{lang}") }}
     }}
     """
 
@@ -88,6 +91,14 @@ class Wikidata:
     sparql.setQuery(query)
     sparql.setReturnFormat("json")
     return sparql.query().convert()["results"]["bindings"]
+
+  @classmethod
+  def run_category_query(cls, object_label):
+    return cls.run_query(cls.prep_category_query(object_label))
+
+  @classmethod
+  def run_depicts_query(cls, qid, lang="en"):
+    return cls.run_query(cls.prep_depicts_query(qid, lang))
 
   @classmethod
   def qid_to_img_url(cls, qid):
