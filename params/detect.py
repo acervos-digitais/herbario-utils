@@ -13,13 +13,13 @@ OBJECTS_FAUNA = {
 }
 
 OBJECTS_FLORA = {
-  "tree": 0.12,
-  "grass": 0.12,
-  "shrub": 0.12,
-  "bush": 0.12,
-  "flower": 0.12,
-  "vegetation": 0.12,
-  "greenery": 0.12,
+  "tree": 0.15,
+  "grass": 0.15,
+  "shrub": 0.15,
+  "bush": 0.15,
+  "flower": 0.15,
+  "vegetation": 0.15,
+  "greenery": 0.15,
 }
 
 OBJECTS_NATURE = {
