@@ -15,7 +15,7 @@ class Caption(BaseModel):
   description: str
 
 
-class LlamaVision():
+class LlamaVision:
   def __init__(self, url="http://127.0.0.1:11434"):
     self.client = Client(host=url)
 
