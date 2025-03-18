@@ -41,7 +41,7 @@ class LlamaVision:
     description = res_obj.pop("description", "")
 
     # turn non-empty lists into sets
-    res_obj_ne = {k:set(v) for k,v in res_obj.items() if len(v) > 0}
+    res_obj_ne = {k:set(v) for k,v in res_obj.items() if len(v) > 0 and v[0].lower() != "none"}
 
     # remove redundant fauna and flora from nature, animals and plants.
     #   needed extra categories to get more words in the lists.
