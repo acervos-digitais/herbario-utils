@@ -19,7 +19,7 @@ class PtEn:
   # https://huggingface.co/Narrativa/mbart-large-50-finetuned-opus-pt-en-translation
 
   MODEL_NAME = "unicamp-dl/translation-pt-en-t5"
-  pipeline = pipeline(model=MODEL_NAME, device="cuda", max_length=768)
+  pipeline = pipeline(model=MODEL_NAME, device="cuda", max_length=1024)
 
   def translate(txt_pt):
     to_en = "translate Portuguese to English: " + txt_pt
