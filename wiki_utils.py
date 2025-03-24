@@ -50,14 +50,17 @@ class Wikidata:
     "product packaging": "Q207822",
     "sculpture": "Q860861",
     "statue": "Q179700",
+    "museu paulista": "Q371803",
+    "masp": "Q82941",
+    "pinacoteca sp": "Q2095209",
   }
 
   @classmethod
-  def prep_category_query(cls, category_label):
+  def prep_category_query(cls, category_label, location):
     return f"""
       SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date ?cat_en ?cat_pt WHERE {{
       SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
-      ?item wdt:P276 wd:Q371803.
+      ?item wdt:P276 wd:{cls.QCODES[location]}.
       ?item wdt:P18 ?image.
 
       ?item wdt:P31 wd:{cls.QCODES[category_label]}.

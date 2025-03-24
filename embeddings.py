@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from PIL import Image as PImage
 
 def pca_kmeans(emb_raw, n_clusters=8, n_components=128):
+  n_components = min(n_components, len(emb_raw))
   mPCA = PCA(n_components=n_components, random_state=10)
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
