@@ -14,4 +14,9 @@ MUSEUMS = {
     "dir": "PinacotecaSP",
     "file": "pinacoteca_sp",
   },
+  "brasiliana": {
+    "label": "brasiliana",
+    "dir": "Brasiliana",
+    "file": "brasiliana",
+  }
 }
