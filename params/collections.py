@@ -5,7 +5,7 @@ MUSEUMS = {
     "file": "museu_paulista",
     "type": "wikidata",
     "collection": True,
-    "objects": ["painting", "drawing"]
+    "objects": ["painting", "drawing", "illustration"]
   },
   "masp": {
     "label": "masp",
@@ -13,7 +13,7 @@ MUSEUMS = {
     "file": "masp",
     "type": "wikidata",
     "collection": False,
-    "objects": ["painting", "drawing"]
+    "objects": ["painting", "drawing", "illustration"]
   },
   "pinacoteca": {
     "label": "pinacoteca sp",
@@ -21,7 +21,7 @@ MUSEUMS = {
     "file": "pinacoteca_sp",
     "type": "wikidata",
     "collection": True,
-    "objects": ["painting", "drawing"]
+    "objects": ["painting", "drawing", "illustration"]
   },
   "historico": {
     "label": "museu historico",
@@ -29,7 +29,7 @@ MUSEUMS = {
     "file": "museu_historico",
     "type": "wikidata",
     "collection": True,
-    "objects": ["painting", "drawing"]
+    "objects": ["painting", "drawing", "illustration"]
   },
   "hercule": {
     "label": "hercule florence",
