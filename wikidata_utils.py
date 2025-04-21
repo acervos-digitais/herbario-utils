@@ -50,17 +50,26 @@ class Wikidata:
     "product packaging": "Q207822",
     "sculpture": "Q860861",
     "statue": "Q179700",
+    "watercolor painting": "Q18761202",
     "museu paulista": "Q371803",
     "masp": "Q82941",
     "pinacoteca sp": "Q2095209",
+    "museu historico": "Q510993",
+    "hercule florence": "Q64759283",
+    "museu paulista collection": "Q56677470",
+    "pinacoteca sp collection": "Q59247460",
+    "museu historico collection": "Q62091616",
+    "hercule florence collection": "Q107003876",
   }
 
   @classmethod
   def prep_category_query(cls, category_label, location):
+    i2l = "P195" if "collection" in location else "P276"
+
     return f"""
       SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date ?cat_en ?cat_pt WHERE {{
       SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
-      ?item wdt:P276 wd:{cls.QCODES[location]}.
+      ?item wdt:{i2l} wd:{cls.QCODES[location]}.
       ?item wdt:P18 ?image.
 
       ?item wdt:P31 wd:{cls.QCODES[category_label]}.

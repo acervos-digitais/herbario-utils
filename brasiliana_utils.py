@@ -6,6 +6,7 @@ import urllib.request as request
 from io import BytesIO
 
 from PIL import Image as PImage, ImageOps as PImageOps
+
 PImage.MAX_IMAGE_PIXELS = None
 
 
