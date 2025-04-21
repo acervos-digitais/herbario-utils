@@ -1,3 +1,4 @@
+import base64
 import json
 
 from os import makedirs, path
@@ -8,50 +9,31 @@ from wikidata_utils import Wikidata
 
 from dominant_colors import get_dominant_colors
 from models.CLIP_embedding import Clip
-from models.EnPt import PtEn
+from models.EnPt import EnPt, PtEn
+from models.LlamaVision import LlamaVision
 from models.Owlv2 import Owlv2
 
 from params.detect import OBJS_LABELS_IN as OBJS_LABELS, OBJS_THOLDS
 
 class Museum:
   @classmethod
-  def prep_data_dirs(cls, museum_info):
-    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
-    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
-    makedirs(cls.MUSEUM_DATA_DIR, exist_ok=True)
+  def prep_dirs(cls, museum_info):
+    cls.DIRS = {
+      "data": f"./metadata/json/{museum_info['dir']}",
+      "imgs": f"../../imgs/{museum_info['dir']}"
+    }
 
-  @classmethod
-  def prep_preprocessing_dirs(cls, museum_info):
-    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
-    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
+    for d in ["captions", "colors", "embeddings", "objects"]:
+      cls.DIRS[d] = path.join(cls.DIRS["data"], d)
 
-    cls.MUSEUM_COLOR_DIR = path.join(cls.MUSEUM_DATA_DIR, "colors")
-    makedirs(cls.MUSEUM_COLOR_DIR, exist_ok=True)
+    cls.IMGS = {}
+    for d in ["500", "900", "full"]:
+      cls.IMGS[d] = path.join(cls.DIRS["imgs"], d)
 
-    cls.MUSEUM_EMBED_DIR = path.join(cls.MUSEUM_DATA_DIR, "embeddings")
-    makedirs(cls.MUSEUM_EMBED_DIR, exist_ok=True)
-
-    TOP_IMG_DIR = f"../../imgs/{museum_info['dir']}"
-    cls.IMG_DIR = path.join(TOP_IMG_DIR, "500")
-
-  @classmethod
-  def prep_detection_dirs(cls, museum_info):
-    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
-    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
-
-    cls.MUSEUM_OBJECT_DIR = path.join(cls.MUSEUM_DATA_DIR, "objects")
-    makedirs(cls.MUSEUM_OBJECT_DIR, exist_ok=True)
-
-    TOP_IMG_DIR = f"../../imgs/{museum_info['dir']}"
-    cls.IMG_DIR = path.join(TOP_IMG_DIR, "900")
+    cls.INFO_PATH = path.join(cls.DIRS["data"], f"{museum_info['file']}.json")
 
   @classmethod
   def prep_caption_dirs(cls, museum_info):
-    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
-    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
-
-    cls.MUSEUM_CAPTION_DIR = path.join(cls.MUSEUM_DATA_DIR, "objects")
-    makedirs(cls.MUSEUM_CAPTION_DIR, exist_ok=True)
 
     TOP_IMG_DIR = f"../../imgs/{museum_info['dir']}"
     cls.IMG_DIR = path.join(TOP_IMG_DIR, "900")
@@ -59,39 +41,42 @@ class Museum:
   @classmethod
   def read_data(cls):
     museum_data = {}
-    if (path.isfile(cls.MUSEUM_INFO_PATH)):
-      with open(cls.MUSEUM_INFO_PATH, "r") as ifp:
+    if (path.isfile(cls.INFO_PATH)):
+      with open(cls.INFO_PATH, "r") as ifp:
         museum_data = json.load(ifp)
     return museum_data
 
   @classmethod
   def write_data(cls, museum_data):
-    with open(cls.MUSEUM_INFO_PATH, "w") as ofp:
+    with open(cls.INFO_PATH, "w") as ofp:
       json.dump(museum_data, ofp, separators=(',',':'), sort_keys=True, ensure_ascii=False)
 
   @classmethod
+  def get_metadata(cls, museum_info):
+    cls.prep_dirs(museum_info)
+    makedirs(cls.DIRS["data"], exist_ok=True)
+
+  @classmethod
   def download_images(cls, museum_info):
-    print("images")
-    IMG_DIR = f"../../imgs/{museum_info['dir']}"
+    cls.prep_dirs(museum_info)
 
-    IMG_DIR_FULL = path.join(IMG_DIR, "full")
-    IMG_DIR_900 = path.join(IMG_DIR, "900")
-    IMG_DIR_500 = path.join(IMG_DIR, "500")
-
-    makedirs(IMG_DIR_FULL, exist_ok=True)
-    makedirs(IMG_DIR_900, exist_ok=True)
-    makedirs(IMG_DIR_500, exist_ok=True)
+    for d in cls.IMGS.values():
+      makedirs(d, exist_ok=True)
 
     museum_data = cls.read_data()
 
-    for cnt, (qid, info) in enumerate(museum_data.items()):
+    qids = sorted(list(museum_data.keys()))
+    print(len(qids), "images")
+
+    for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
         print(cnt)
 
-      img_path_full = path.join(IMG_DIR_FULL, f"{qid}.jpg")
-      img_path_900 = path.join(IMG_DIR_900, f"{qid}.jpg")
-      img_path_500 = path.join(IMG_DIR_500, f"{qid}.jpg")
-      img_url = info["image"]
+      img_path_full = path.join(cls.IMGS["full"], f"{qid}.jpg")
+      img_path_900 = path.join(cls.IMGS["900"], f"{qid}.jpg")
+      img_path_500 = path.join(cls.IMGS["500"], f"{qid}.jpg")
+
+      img_url = museum_data[qid]["image"]
 
       if (not path.isfile(img_path_full)) or (not path.isfile(img_path_900)) or (not path.isfile(img_path_500)):
         try:
@@ -116,7 +101,9 @@ class Museum:
 
   @classmethod
   def get_colors(cls, museum_info):
-    cls.prep_preprocessing_dirs(museum_info)
+    cls.prep_dirs(museum_info)
+    makedirs(cls.DIRS["colors"], exist_ok=True)
+
     museum_data = cls.read_data()
 
     qids = sorted(list(museum_data.keys()))
@@ -126,8 +113,8 @@ class Museum:
       if cnt % 100 == 0:
         print(cnt)
 
-      img_path = path.join(cls.IMG_DIR, f"{qid}.jpg")
-      color_path = path.join(cls.MUSEUM_COLOR_DIR, f"{qid}.json")
+      img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
+      color_path = path.join(cls.DIRS["colors"], f"{qid}.json")
 
       if (not path.isfile(img_path)) or path.isfile(color_path):
         continue
@@ -143,7 +130,9 @@ class Museum:
 
   @classmethod
   def get_embeddings(cls, museum_info):
-    cls.prep_preprocessing_dirs(museum_info)
+    cls.prep_dirs(museum_info)
+    makedirs(cls.DIRS["embeddings"], exist_ok=True)
+
     museum_data = cls.read_data()
 
     qids = sorted(list(museum_data.keys()))
@@ -156,8 +145,8 @@ class Museum:
       if cnt % 100 == 0:
         print(cnt)
 
-      img_path = path.join(cls.IMG_DIR, f"{qid}.jpg")
-      embedding_path = path.join(cls.MUSEUM_EMBED_DIR, f"{qid}.json")
+      img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
+      embedding_path = path.join(cls.DIRS["embeddings"], f"{qid}.json")
 
       if (not path.isfile(img_path)) or path.isfile(embedding_path):
         continue
@@ -172,7 +161,9 @@ class Museum:
 
   @classmethod
   def get_objects(cls, museum_info):
-    cls.prep_detection_dirs(museum_info)
+    cls.prep_dirs(museum_info)
+    makedirs(cls.DIRS["objects"], exist_ok=True)
+
     museum_data = cls.read_data()
 
     qids = sorted(list(museum_data.keys()))
@@ -185,8 +176,8 @@ class Museum:
       if cnt % 100 == 0:
         print(cnt)
 
-      img_path = path.join(cls.IMG_DIR, f"{qid}.jpg")
-      object_path = path.join(cls.MUSEUM_OBJECT_DIR, f"{qid}.json")
+      img_path = path.join(cls.IMGS["900"], f"{qid}.jpg")
+      object_path = path.join(cls.DIRS["objects"], f"{qid}.json")
 
       if (not path.isfile(img_path)) or path.isfile(object_path):
         continue
@@ -201,13 +192,54 @@ class Museum:
       with open(object_path, "w", encoding="utf-8") as of:
         json.dump(image_boxes, of, sort_keys=True, separators=(',',':'), ensure_ascii=False)
 
+  @classmethod
+  def get_captions(cls, museum_info):
+    cls.prep_dirs(museum_info)
+    makedirs(cls.DIRS["captions"], exist_ok=True)
+
+    museum_data = cls.read_data()
+
+    qids = sorted(list(museum_data.keys()))
+    print(len(qids), "images")
+
+    OLLAMA_URL = "http://127.0.0.1:11434"
+    if not hasattr(cls, "llama"):
+      cls.llama = LlamaVision()
+    if not hasattr(cls, "enpt"):
+      cls.enpt = EnPt()
+
+    for cnt,qid in enumerate(qids):
+      if cnt % 100 == 0:
+        print(cnt)
+
+      img_path = path.join(cls.IMGS["900"], f"{qid}.jpg")
+      caption_path = path.join(cls.DIRS["captions"], f"{qid}.json")
+
+      if (not path.isfile(img_path)) or path.isfile(caption_path):
+        continue
+
+      with open(img_path, "rb") as ifp:
+        img_data = ifp.read()
+        img = base64.b64encode(img_data).decode()
+        llama_vision_caption_en = cls.llama.caption(img)
+        llama_vision_caption_pt = {k:[cls.enpt.translate(w) for w in v] for k,v in llama_vision_caption_en.items()}
+
+        cap_data = {
+          "llama3.2": {
+            "en" : llama_vision_caption_en,
+            "pt":llama_vision_caption_pt
+          }
+        }
+
+        with open(caption_path, "w", encoding="utf-8") as ofp:
+          json.dump(cap_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
 
 class WikidataMuseum(Museum):
   download_image = Wikidata.download_image
 
   @classmethod
   def get_metadata(cls, museum_info):
-    cls.prep_data_dirs(museum_info)
+    Museum.get_metadata(museum_info)
     museum_data = cls.read_data()
 
     defval = {"value": "unknown"}
@@ -267,8 +299,11 @@ class BrasilianaMuseum(Museum):
 
   @classmethod
   def get_metadata(cls, museum_info):
-    cls.prep_data_dirs(museum_info)
+    Museum.get_metadata(museum_info)
     museum_data = cls.read_data()
+
+    if not hasattr(cls, "pten"):
+      cls.pten = PtEn()
 
     for category in museum_info["objects"]:
       print(category)
@@ -291,7 +326,7 @@ class BrasilianaMuseum(Museum):
           item_data[k] = result["data"][v]["value"]
           if v in Brasiliana.FIELDS_TO_TRANSLATE:
             if len(item_data[k]["pt"]) > 0:
-              item_data[k]["en"] = PtEn.translate(item_data[k]["pt"])
+              item_data[k]["en"] = cls.pten.translate(item_data[k]["pt"])
 
         museum_data[id] = museum_data.get(id, {}) | item_data
 
