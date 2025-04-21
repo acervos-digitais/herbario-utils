@@ -1,16 +1,17 @@
 import json
 
 from os import makedirs, path
-from PIL import Image as PImage
-
-from models.CLIP_embedding import Clip
-from models.EnPt import PtEn
+from PIL import Image as PImage, ImageOps as PImageOps
 
 from brasiliana_utils import Brasiliana
 from wikidata_utils import Wikidata
 
 from dominant_colors import get_dominant_colors
+from models.CLIP_embedding import Clip
+from models.EnPt import PtEn
+from models.Owlv2 import Owlv2
 
+from params.detect import OBJS_LABELS_IN as OBJS_LABELS, OBJS_THOLDS
 
 class Museum:
   @classmethod
@@ -30,8 +31,19 @@ class Museum:
     cls.MUSEUM_EMBED_DIR = path.join(cls.MUSEUM_DATA_DIR, "embeddings")
     makedirs(cls.MUSEUM_EMBED_DIR, exist_ok=True)
 
-    IMG_DIR = f"../../imgs/{museum_info['dir']}"
-    cls.IMG_DIR_500 = path.join(IMG_DIR, "500")
+    TOP_IMG_DIR = f"../../imgs/{museum_info['dir']}"
+    cls.IMG_DIR = path.join(TOP_IMG_DIR, "500")
+
+  @classmethod
+  def prep_detection_dirs(cls, museum_info):
+    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
+    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
+
+    cls.MUSEUM_OBJECT_DIR = path.join(cls.MUSEUM_DATA_DIR, "objects")
+    makedirs(cls.MUSEUM_OBJECT_DIR, exist_ok=True)
+
+    TOP_IMG_DIR = f"../../imgs/{museum_info['dir']}"
+    cls.IMG_DIR = path.join(TOP_IMG_DIR, "900")
 
   @classmethod
   def read_data(cls):
@@ -103,7 +115,7 @@ class Museum:
       if cnt % 100 == 0:
         print(cnt)
 
-      img_path = path.join(cls.IMG_DIR_500, f"{qid}.jpg")
+      img_path = path.join(cls.IMG_DIR, f"{qid}.jpg")
       color_path = path.join(cls.MUSEUM_COLOR_DIR, f"{qid}.json")
 
       if (not path.isfile(img_path)) or path.isfile(color_path):
@@ -133,7 +145,7 @@ class Museum:
       if cnt % 100 == 0:
         print(cnt)
 
-      img_path = path.join(cls.IMG_DIR_500, f"{qid}.jpg")
+      img_path = path.join(cls.IMG_DIR, f"{qid}.jpg")
       embedding_path = path.join(cls.MUSEUM_EMBED_DIR, f"{qid}.json")
 
       if (not path.isfile(img_path)) or path.isfile(embedding_path):
@@ -146,6 +158,37 @@ class Museum:
 
       with open(embedding_path, "w", encoding="utf-8") as ofp:
         json.dump(embedding_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+
+  @classmethod
+  def get_objects(cls, museum_info):
+    cls.prep_detection_dirs(museum_info)
+    museum_data = cls.read_data()
+
+    qids = sorted(list(museum_data.keys()))
+    print(len(qids), "images")
+
+    if not hasattr(cls, "owl"):
+      cls.owl = Owlv2("google/owlv2-base-patch16")
+
+    for cnt,qid in enumerate(qids):
+      if cnt % 100 == 0:
+        print(cnt)
+
+      img_path = path.join(cls.IMG_DIR, f"{qid}.jpg")
+      object_path = path.join(cls.MUSEUM_OBJECT_DIR, f"{qid}.json")
+
+      if (not path.isfile(img_path)) or path.isfile(object_path):
+        continue
+
+      image = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
+
+      image_boxes = []
+      for labels,tholds in zip(OBJS_LABELS, OBJS_THOLDS):
+        obj_boxes = cls.owl.all_objects(image, labels, tholds)
+        image_boxes += obj_boxes
+
+      with open(object_path, "w", encoding="utf-8") as of:
+        json.dump(image_boxes, of, sort_keys=True, separators=(',',':'), ensure_ascii=False)
 
 
 class WikidataMuseum(Museum):
