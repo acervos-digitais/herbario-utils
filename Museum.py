@@ -1,18 +1,37 @@
 import json
 
 from os import makedirs, path
+from PIL import Image as PImage
+
+from models.CLIP_embedding import Clip
+from models.EnPt import PtEn
 
 from brasiliana_utils import Brasiliana
 from wikidata_utils import Wikidata
 
-from models.EnPt import PtEn
+from dominant_colors import get_dominant_colors
+
 
 class Museum:
   @classmethod
-  def prep_dirs(cls, museum_info):
-    Museum.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
-    Museum.MUSEUM_INFO_PATH = path.join(Museum.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
-    makedirs(Museum.MUSEUM_DATA_DIR, exist_ok=True)
+  def prep_data_dirs(cls, museum_info):
+    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
+    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
+    makedirs(cls.MUSEUM_DATA_DIR, exist_ok=True)
+
+  @classmethod
+  def prep_preprocessing_dirs(cls, museum_info):
+    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
+    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
+
+    cls.MUSEUM_COLOR_DIR = path.join(cls.MUSEUM_DATA_DIR, "colors")
+    makedirs(cls.MUSEUM_COLOR_DIR, exist_ok=True)
+
+    cls.MUSEUM_EMBED_DIR = path.join(cls.MUSEUM_DATA_DIR, "embeddings")
+    makedirs(cls.MUSEUM_EMBED_DIR, exist_ok=True)
+
+    IMG_DIR = f"../../imgs/{museum_info['dir']}"
+    cls.IMG_DIR_500 = path.join(IMG_DIR, "500")
 
   @classmethod
   def read_data(cls):
@@ -72,12 +91,69 @@ class Museum:
         pimg.thumbnail([500, 500])
         pimg.save(img_path_500)
 
+  @classmethod
+  def get_colors(cls, museum_info):
+    cls.prep_preprocessing_dirs(museum_info)
+    museum_data = cls.read_data()
+
+    qids = sorted(list(museum_data.keys()))
+    print(len(qids), "images")
+
+    for cnt,qid in enumerate(qids):
+      if cnt % 100 == 0:
+        print(cnt)
+
+      img_path = path.join(cls.IMG_DIR_500, f"{qid}.jpg")
+      color_path = path.join(cls.MUSEUM_COLOR_DIR, f"{qid}.json")
+
+      if (not path.isfile(img_path)) or path.isfile(color_path):
+        continue
+
+      img = PImage.open(img_path)
+      _, rgb_by_hls = get_dominant_colors(img)
+      palette = [[int(v) for v in c] for c in rgb_by_hls[:4]]
+
+      color_data = { qid: { "color_palette": palette } }
+
+      with open(color_path, "w", encoding="utf-8") as ofp:
+        json.dump(color_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+
+  @classmethod
+  def get_embeddings(cls, museum_info):
+    cls.prep_preprocessing_dirs(museum_info)
+    museum_data = cls.read_data()
+
+    qids = sorted(list(museum_data.keys()))
+    print(len(qids), "images")
+
+    if not hasattr(cls, "clip"):
+      cls.clip = Clip()
+
+    for cnt,qid in enumerate(qids):
+      if cnt % 100 == 0:
+        print(cnt)
+
+      img_path = path.join(cls.IMG_DIR_500, f"{qid}.jpg")
+      embedding_path = path.join(cls.MUSEUM_EMBED_DIR, f"{qid}.json")
+
+      if (not path.isfile(img_path)) or path.isfile(embedding_path):
+        continue
+
+      img = PImage.open(img_path)
+      clip_embedding = [round(v, 8) for v in cls.clip.get_embedding(img).tolist()]
+
+      embedding_data = { qid: { "clip": clip_embedding } }
+
+      with open(embedding_path, "w", encoding="utf-8") as ofp:
+        json.dump(embedding_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+
+
 class WikidataMuseum(Museum):
   download_image = Wikidata.download_image
 
   @classmethod
   def get_metadata(cls, museum_info):
-    cls.prep_dirs(museum_info)
+    cls.prep_data_dirs(museum_info)
     museum_data = cls.read_data()
 
     defval = {"value": "unknown"}
@@ -137,7 +213,7 @@ class BrasilianaMuseum(Museum):
 
   @classmethod
   def get_metadata(cls, museum_info):
-    cls.prep_dirs(museum_info)
+    cls.prep_data_dirs(museum_info)
     museum_data = cls.read_data()
 
     for category in museum_info["objects"]:
