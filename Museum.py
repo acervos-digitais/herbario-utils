@@ -46,6 +46,17 @@ class Museum:
     cls.IMG_DIR = path.join(TOP_IMG_DIR, "900")
 
   @classmethod
+  def prep_caption_dirs(cls, museum_info):
+    cls.MUSEUM_DATA_DIR = f"./metadata/json/{museum_info['dir']}"
+    cls.MUSEUM_INFO_PATH = path.join(cls.MUSEUM_DATA_DIR, f"{museum_info['file']}.json")
+
+    cls.MUSEUM_CAPTION_DIR = path.join(cls.MUSEUM_DATA_DIR, "objects")
+    makedirs(cls.MUSEUM_CAPTION_DIR, exist_ok=True)
+
+    TOP_IMG_DIR = f"../../imgs/{museum_info['dir']}"
+    cls.IMG_DIR = path.join(TOP_IMG_DIR, "900")
+
+  @classmethod
   def read_data(cls):
     museum_data = {}
     if (path.isfile(cls.MUSEUM_INFO_PATH)):
