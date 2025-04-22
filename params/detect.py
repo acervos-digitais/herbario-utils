@@ -22,6 +22,11 @@ OBJECTS_FLORA = {
   "greenery": 0.15,
 }
 
+OBJECTS_TREES = {
+  "palm tree": 0.15,
+  "coniferous tree": 0.15,
+}
+
 OBJECTS_NATURE = {
   "water": 0.8,
   "pond": 0.8,
@@ -32,6 +37,7 @@ OBJECTS_NATURE = {
 
 OBJECTS = [
   OBJECTS_FLORA,
+  OBJECTS_TREES
 ]
 
 OBJECT2LABEL = {
