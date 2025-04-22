@@ -1,6 +1,5 @@
 import base64
 import json
-import re
 
 from os import makedirs, path
 from PIL import Image as PImage, ImageOps as PImageOps
@@ -184,8 +183,10 @@ class Museum:
         obj_boxes = cls.owl.all_objects(image, labels, tholds)
         image_boxes += obj_boxes
 
+      object_data = { qid: { "objects": image_boxes}}
+
       with open(object_path, "w", encoding="utf-8") as of:
-        json.dump(image_boxes, of, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+        json.dump(object_data, of, sort_keys=True, separators=(',',':'), ensure_ascii=False)
 
   @classmethod
   def get_captions(cls, museum_info):
@@ -219,12 +220,14 @@ class Museum:
         llama_vision_caption_en = cls.llama.caption(img)
         llama_vision_caption_pt = {k:[cls.enpt.translate(w) for w in v] for k,v in llama_vision_caption_en.items()}
 
-        cap_data = {
+        llama_cap = {
           "llama3.2": {
             "en": llama_vision_caption_en,
             "pt": llama_vision_caption_pt
           }
         }
+
+        cap_data = { qid: llama_cap }
 
         with open(caption_path, "w", encoding="utf-8") as ofp:
           json.dump(cap_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
