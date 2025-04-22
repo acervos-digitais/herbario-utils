@@ -43,7 +43,7 @@ class Museum:
   @classmethod
   def write_data(cls, museum_data):
     with open(cls.INFO_PATH, "w") as ofp:
-      json.dump(museum_data, ofp, separators=(',',':'), sort_keys=True, ensure_ascii=False)
+      json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
   @classmethod
   def get_metadata(cls, museum_info):
@@ -120,7 +120,7 @@ class Museum:
       color_data = { qid: { "color_palette": palette } }
 
       with open(color_path, "w", encoding="utf-8") as ofp:
-        json.dump(color_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+        json.dump(color_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
   def get_embeddings(cls, museum_info):
@@ -151,7 +151,7 @@ class Museum:
       embedding_data = { qid: { "clip": clip_embedding } }
 
       with open(embedding_path, "w", encoding="utf-8") as ofp:
-        json.dump(embedding_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+        json.dump(embedding_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
   def get_objects(cls, museum_info):
@@ -186,7 +186,7 @@ class Museum:
       object_data = { qid: { "objects": image_boxes}}
 
       with open(object_path, "w", encoding="utf-8") as of:
-        json.dump(object_data, of, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+        json.dump(object_data, of, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
   def get_captions(cls, museum_info):
@@ -230,7 +230,36 @@ class Museum:
         cap_data = { qid: llama_cap }
 
         with open(caption_path, "w", encoding="utf-8") as ofp:
-          json.dump(cap_data, ofp, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+          json.dump(cap_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
+
+  @classmethod
+  def combine_data(cls, museum_info):
+    cls.prep_dirs(museum_info)
+
+    museum_data = cls.read_data()
+
+    qids = sorted(list(museum_data.keys()))
+
+    for cnt,qid in enumerate(qids):
+      if cnt % 32 == 0:
+        print(cnt)
+
+      img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
+
+      if not path.isfile(img_path):
+        print("deleting:", qid)
+        del museum_data[qid]
+        continue
+
+      for d in ["colors", "embeddings", "objects", "captions"]:
+        with open(path.join(cls.DIRS[d], f"{qid}.json"), "r") as ifp:
+          data = json.load(ifp)
+          museum_data[qid] |= data[qid]
+
+    full_data_path = path.join(cls.DIRS["data"], f"{museum_info['file']}_full.json")
+    with open(full_data_path, "w") as ofp:
+      json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+
 
 class WikidataMuseum(Museum):
   download_image = Wikidata.download_image
@@ -284,6 +313,7 @@ class WikidataMuseum(Museum):
           }
 
     cls.write_data(museum_data)
+
 
 class BrasilianaMuseum(Museum):
   download_image = Brasiliana.download_image
