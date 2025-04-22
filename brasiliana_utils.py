@@ -26,16 +26,7 @@ class Brasiliana:
     "creator": "autor",
     "date": "data-de-producao",
     "museum": "instalacao",
-    "categories": "classificacao",
-    "depicts": "denominacao",
-    "caption": "description",
   }
-
-  FIELDS_TO_TRANSLATE = [
-    "classificacao",
-    "denominacao",
-    "description",
-  ]
 
   @classmethod
   def object_from_json_url(cls, url):
@@ -64,13 +55,6 @@ class Brasiliana:
   def run_query(cls, url):
     result = cls.object_from_json_url(url)
     items = result["items"]
-
-    for i in items:
-      for f in cls.FIELDS_TO_TRANSLATE:
-        i["data"][f]["value"] = {
-          "pt": i["data"][f]["value"],
-          "en": ""
-        }
 
     pagination = result["pagination"]
     if(pagination["current_page"] < pagination["total_page"]):

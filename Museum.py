@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 
 from os import makedirs, path
 from PIL import Image as PImage, ImageOps as PImageOps
@@ -9,7 +10,7 @@ from wikidata_utils import Wikidata
 
 from dominant_colors import get_dominant_colors
 from models.CLIP_embedding import Clip
-from models.EnPt import EnPt, PtEn
+from models.EnPt import EnPt, PtEn, PartOfSpeech
 from models.LlamaVision import LlamaVision
 from models.Owlv2 import Owlv2
 
@@ -31,12 +32,6 @@ class Museum:
       cls.IMGS[d] = path.join(cls.DIRS["imgs"], d)
 
     cls.INFO_PATH = path.join(cls.DIRS["data"], f"{museum_info['file']}.json")
-
-  @classmethod
-  def prep_caption_dirs(cls, museum_info):
-
-    TOP_IMG_DIR = f"../../imgs/{museum_info['dir']}"
-    cls.IMG_DIR = path.join(TOP_IMG_DIR, "900")
 
   @classmethod
   def read_data(cls):
@@ -226,8 +221,8 @@ class Museum:
 
         cap_data = {
           "llama3.2": {
-            "en" : llama_vision_caption_en,
-            "pt":llama_vision_caption_pt
+            "en": llama_vision_caption_en,
+            "pt": llama_vision_caption_pt
           }
         }
 
@@ -244,9 +239,9 @@ class WikidataMuseum(Museum):
 
     defval = {"value": "unknown"}
 
-    locations = [museum_info['label']]
+    locations = [museum_info["label"]]
     if museum_info["collection"]:
-      locations.append(f"{museum_info['label']} collection")
+      locations.append(museum_info["label"] + " collection")
 
     for category in museum_info["objects"]:
       for location in locations:
@@ -260,17 +255,12 @@ class WikidataMuseum(Museum):
             print(cnt)
 
           id = result["qid"]["value"]
-
-          cat = {
-            "en": result["cat_en"]["value"],
-            "pt": result["cat_pt"]["value"]
-          }
+          cat = result["cat_en"]["value"]
 
           if id in museum_data:
-            for l in ["en", "pt"]:
-              mcategories = set(museum_data[id]["categories"][l])
-              mcategories.add(cat[l])
-              museum_data[id]["categories"][l] = list(mcategories)
+            cats = set(museum_data[id]["categories"])
+            cats.add(cat)
+            museum_data[id]["categories"] = list(cats)
             continue
 
           dResultsEn = Wikidata.run_depicts_query(id, "en")
@@ -278,18 +268,16 @@ class WikidataMuseum(Museum):
 
           museum_data[id] = {
             "id": result["qid"]["value"],
-            "categories": {
-              "en": [cat["en"]],
-              "pt": [cat["pt"]]
-            },
+            "categories": [cat],
             "depicts": {
               "en": [d["depictsLabel"]["value"] for d in dResultsEn],
-              "pt":[d["depictsLabel"]["value"] for d in dResultsPt]
+              "pt": [d["depictsLabel"]["value"] for d in dResultsPt]
             },
             "title": result["itemLabel"]["value"],
             "date": result.get("date", defval)["value"],
             "creator": result.get("creatorLabel", defval)["value"],
-            "image": result["image"]["value"]
+            "image": result["image"]["value"],
+            "museum": museum_info["label"]
           }
 
     cls.write_data(museum_data)
@@ -302,12 +290,17 @@ class BrasilianaMuseum(Museum):
     Museum.get_metadata(museum_info)
     museum_data = cls.read_data()
 
+    if not hasattr(cls, "enpt"):
+      cls.enpt = EnPt()
     if not hasattr(cls, "pten"):
       cls.pten = PtEn()
+    if not hasattr(cls, "pos"):
+      cls.pos = PartOfSpeech()
 
     for category in museum_info["objects"]:
       print(category)
       qResults = Brasiliana.run_category_query(category)
+
       for cnt,result in enumerate(qResults):
         if cnt % 100 == 0:
           print(cnt)
@@ -317,16 +310,29 @@ class BrasilianaMuseum(Museum):
 
         id = result["id"]
 
+        desc_pt = result["data"]["description"]["value"].replace("&#034;", "")
+        desc_en = cls.pten.translate(desc_pt).lower()
+        dep_en = cls.pos.get_nouns(desc_en)
+        dep_pt = [cls.enpt.translate(t).lower() for t in dep_en]
+
+        if id in museum_data:
+          cats = set(museum_data[id]["categories"])
+          cats.add(category)
+          museum_data[id]["categories"] = list(cats)
+          continue
+
         item_data = {
           "id": result["id"],
-          "image": result["document"]["value"]
+          "categories": [category],
+          "depicts": {
+            "en": dep_en,
+            "pt": dep_pt
+          },
+          "image": result["document"]["value"],
         }
 
         for k,v in Brasiliana.ITEM_DATA_FIELDS.items():
-          item_data[k] = result["data"][v]["value"]
-          if v in Brasiliana.FIELDS_TO_TRANSLATE:
-            if len(item_data[k]["pt"]) > 0:
-              item_data[k]["en"] = cls.pten.translate(item_data[k]["pt"])
+          item_data[k] = result["data"][v]["value"].replace("&#034;", "")
 
         museum_data[id] = museum_data.get(id, {}) | item_data
 

@@ -28,3 +28,25 @@ class PtEn:
   def translate(self, txt_pt):
     to_en = "translate Portuguese to English: " + txt_pt
     return self.pipeline(to_en)[0]["translation_text"]
+
+class PartOfSpeech:
+  MODEL_NAME = "QCRI/bert-base-multilingual-cased-pos-english"
+
+  def __init__(self):
+    self.pipeline = pipeline(model=PartOfSpeech.MODEL_NAME, device="cuda")
+
+  def get_nouns(self, txt):
+    if txt == "" or len(txt) < 1:
+      return []
+
+    pos = self.pipeline(txt)
+
+    nouns = []
+    for o in pos:
+      if o["entity"] == "NN" or o["entity"] == "NNS":
+        if o["word"].startswith("#") and len(nouns) > 1:
+          nouns[-1] = nouns[-1] + o["word"].replace("#", "").lower()
+        elif not o["word"].startswith("#"):
+          nouns.append(o["word"].lower())
+
+    return list(set(nouns))
