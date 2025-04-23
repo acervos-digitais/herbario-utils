@@ -63,36 +63,48 @@ class Wikidata:
   }
 
   @classmethod
-  def prep_category_query(cls, category_label, location):
+  def prep_category_query(cls, object_category, location):
+    # https://w.wiki/DtAY
+    # https://w.wiki/DtAh
     i2l = "P195" if "collection" in location else "P276"
 
     return f"""
-      SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date ?cat_en ?cat_pt WHERE {{
+      SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date ?article WHERE {{
       SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
       ?item wdt:{i2l} wd:{cls.QCODES[location]}.
       ?item wdt:P18 ?image.
 
-      ?item wdt:P31 wd:{cls.QCODES[category_label]}.
+      ?item wdt:P31 wd:{cls.QCODES[object_category]}.
 
       BIND(STRAFTER(STR(?item), STR(wd:)) AS ?qid).
 
-      BIND(wd:{cls.QCODES[category_label]} AS ?category).
-      ?category rdfs:label ?cat_en filter (lang(?cat_en) = "en").
-      ?category rdfs:label ?cat_pt filter (lang(?cat_pt) = "pt").
-
       OPTIONAL {{ ?item wdt:P170 ?creator. }}
       OPTIONAL {{ ?item wdt:P571 ?date. }}
+      OPTIONAL {{ ?article schema:about ?item. }}
     }}
     """
 
   @classmethod
-  def prep_depicts_query(cls, qid, lang="en"):
+  def prep_depicts_query(cls, qid):
+    # https://w.wiki/DtAQ
     return f"""
-      SELECT DISTINCT ?qid ?depictsLabel WHERE {{
-      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "{lang}". }}
+      SELECT DISTINCT ?depicts_pt ?depicts_en WHERE {{
       BIND(wd:{qid} AS ?item).
       ?item wdt:P180 ?depicts .
-      OPTIONAL {{ ?depicts rdfs:label ?depictsLabel FILTER (lang(?depictsLabel) = "{lang}") }}
+      {{ ?depicts rdfs:label ?depicts_pt FILTER (lang(?depicts_pt) = "pt") }}
+      {{ ?depicts rdfs:label ?depicts_en FILTER (lang(?depicts_en) = "en") }}
+    }}
+    """
+
+  @classmethod
+  def prep_instance_query(cls, qid):
+    # https://w.wiki/DtAe
+    return f"""
+      SELECT DISTINCT ?inst_pt ?inst_en WHERE {{
+      BIND(wd:{qid} AS ?item).
+      ?item wdt:P31 ?object.
+      {{ ?object rdfs:label ?inst_pt FILTER (lang(?inst_pt) = "pt") }}
+      {{ ?object rdfs:label ?inst_en FILTER (lang(?inst_en) = "en") }}
     }}
     """
 
@@ -105,12 +117,16 @@ class Wikidata:
     return sparql.query().convert()["results"]["bindings"]
 
   @classmethod
-  def run_category_query(cls, object_label):
-    return cls.run_query(cls.prep_category_query(object_label))
+  def run_category_query(cls, object_category, location):
+    return cls.run_query(cls.prep_category_query(object_category, location))
 
   @classmethod
-  def run_depicts_query(cls, qid, lang="en"):
-    return cls.run_query(cls.prep_depicts_query(qid, lang))
+  def run_depicts_query(cls, qid):
+    return cls.run_query(cls.prep_depicts_query(qid))
+
+  @classmethod
+  def run_instance_query(cls, qid):
+    return cls.run_query(cls.prep_instance_query(qid))
 
   @classmethod
   def qid_to_img_url(cls, qid):

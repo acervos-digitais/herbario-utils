@@ -279,37 +279,34 @@ class WikidataMuseum(Museum):
       for location in locations:
         print(location, category)
 
-        cQuery = Wikidata.prep_category_query(category, location)
-        cResults = Wikidata.run_query(cQuery)
+        cResults = Wikidata.run_category_query(category, location)
 
         for cnt,result in enumerate(cResults):
           if cnt % 100 == 0:
             print(cnt)
 
           id = result["qid"]["value"]
-          cat = result["cat_en"]["value"]
+          defurlval = {"value": f"https://www.wikidata.org/wiki/{id}"}
 
           if id in museum_data:
-            cats = set(museum_data[id]["categories"])
-            cats.add(cat)
-            museum_data[id]["categories"] = list(cats)
             continue
 
-          dResultsEn = Wikidata.run_depicts_query(id, "en")
-          dResultsPt = Wikidata.run_depicts_query(id, "pt")
+          depicts = Wikidata.run_depicts_query(id)
+          instance = Wikidata.run_instance_query(id)
 
           museum_data[id] = {
             "id": result["qid"]["value"],
-            "categories": [cat],
+            "categories": [i["inst_en"]["value"] for i in instance],
             "depicts": {
-              "en": [d["depictsLabel"]["value"] for d in dResultsEn],
-              "pt": [d["depictsLabel"]["value"] for d in dResultsPt]
+              "en": [d["depicts_en"]["value"] for d in depicts],
+              "pt": [d["depicts_pt"]["value"] for d in depicts]
             },
             "title": result["itemLabel"]["value"],
             "date": result.get("date", defval)["value"],
             "creator": result.get("creatorLabel", defval)["value"],
             "image": result["image"]["value"],
-            "museum": museum_info["label"]
+            "museum": museum_info["label"],
+            "url": result.get("article", defurlval)["value"],
           }
 
     cls.write_data(museum_data)
@@ -362,6 +359,7 @@ class BrasilianaMuseum(Museum):
             "pt": dep_pt
           },
           "image": result["document"]["value"],
+          "url": result["url"]
         }
 
         for k,v in Brasiliana.ITEM_DATA_FIELDS.items():
