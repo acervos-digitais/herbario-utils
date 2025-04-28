@@ -20,7 +20,7 @@ class Museum:
   def prep_dirs(cls, museum_info):
     cls.DIRS = {
       "data": f"./metadata/json/{museum_info['dir']}",
-      "imgs": f"../../imgs/{museum_info['dir']}"
+      "imgs": f"../../imgs/arts"
     }
 
     for d in ["captions", "colors", "embeddings", "objects"]:
