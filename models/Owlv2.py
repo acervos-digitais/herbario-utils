@@ -29,15 +29,15 @@ class Owlv2:
 
   def __init__(self, model=None):
     model_name = Owlv2.MODEL_NAME if model is None else model
-    self.obj_processor = Owlv2Processor.from_pretrained(model_name)
-    self.obj_model = Owlv2ForObjectDetection.from_pretrained(model_name).to(Owlv2.DEVICE)
+    self.processor = Owlv2Processor.from_pretrained(model_name)
+    self.model = Owlv2ForObjectDetection.from_pretrained(model_name).to(Owlv2.DEVICE)
 
   def run_object_detection(self, img, labels, tholds):
-    input = self.obj_processor(text=labels, images=img, return_tensors="pt").to(Owlv2.DEVICE)
+    input = self.processor(text=labels, images=img, return_tensors="pt").to(Owlv2.DEVICE)
     with torch.no_grad():
-      obj_out = self.obj_model(**input)
+      obj_out = self.model(**input)
 
-    res = self.obj_processor.post_process_object_detection(outputs=obj_out, target_sizes=[Owlv2.OBJ_TARGET_SIZE])
+    res = self.processor.post_process_object_detection(outputs=obj_out, target_sizes=[Owlv2.OBJ_TARGET_SIZE])
     slbs = zip(res[0]["scores"], res[0]["labels"], res[0]["boxes"])
     iw, ih = img.size
 
@@ -54,3 +54,14 @@ class Owlv2:
   def all_objects(self, img, labels, tholds):
     detected_objs = self.run_object_detection(img, labels, tholds)
     return [{k: o[k] for k in ["box", "label"]} for o in detected_objs]
+
+  def get_embedding(self, img):
+    input = self.processor(images=img, return_tensors="pt").to(Owlv2.DEVICE)
+
+    with torch.no_grad():
+      obj_out = self.model(**input, return_base_image_embeds=True)
+
+    my_embedding = obj_out["image_embeds"].detach().squeeze()
+    # my_embedding = obj_out["vision_model_output"]["last_hidden_state"]
+
+    return my_embedding
