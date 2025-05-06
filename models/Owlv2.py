@@ -1,6 +1,6 @@
 import torch
 
-from transformers import Owlv2Processor, Owlv2ForObjectDetection, Owlv2VisionModel
+from transformers import Owlv2Processor, Owlv2ForObjectDetection, Owlv2Model
 from warnings import simplefilter
 
 simplefilter(action="ignore")
@@ -62,15 +62,14 @@ class Owlv2Embedding:
   def __init__(self, model=None):
     model_name = Owlv2Embedding.MODEL_NAME if model is None else model
     self.processor = Owlv2Processor.from_pretrained(model_name)
-    self.model = Owlv2VisionModel.from_pretrained(model_name).to(Owlv2Embedding.DEVICE)
+    self.model = Owlv2Model.from_pretrained(model_name).to(Owlv2Embedding.DEVICE)
 
   def get_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(Owlv2Embedding.DEVICE)
 
     with torch.no_grad():
-      output = self.model(**input)
+      output = self.model.get_image_features(**input)
 
-    my_embedding = output["last_hidden_state"][:, 0, :].detach().squeeze()
-    # my_embedding = output["last_hidden_state"][:, 1:, :].mean(dim=1).detach().squeeze()
+    my_embedding = output.detach().squeeze()
 
     return my_embedding
