@@ -54,6 +54,19 @@ class Owlv2:
     detected_objs = self.run_object_detection(img, labels, tholds)
     return [{k: o[k] for k in ["box", "label"]} for o in detected_objs]
 
+  def get_objectness_boxes(self, img, topk=8):
+    tsize = [img.size[::-1]]
+    input = self.processor(images=img, text="", return_tensors="pt").to(Owlv2.DEVICE)
+    with torch.no_grad():
+      output = self.model(**input)
+
+    objectnesses = output["objectness_logits"].squeeze()
+    objectness_idxs = torch.sort(objectnesses)[1][-topk:].tolist()
+    pred_boxes = self.processor.post_process_object_detection(outputs=output, target_sizes=tsize, threshold=0)[0]["boxes"]
+
+    crop_boxes = [[int(i) for i in pred_boxes[idx].tolist()] for idx in objectness_idxs]
+    return crop_boxes
+
 
 class Owlv2Embedding:
   MODEL_NAME = "google/owlv2-base-patch16"
