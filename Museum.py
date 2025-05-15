@@ -249,6 +249,7 @@ class Museum:
     cls.prep_dirs(museum_info)
 
     museum_data = cls.read_data()
+    embed_data = {}
 
     qids = sorted(list(museum_data.keys()))
 
@@ -263,15 +264,34 @@ class Museum:
         del museum_data[qid]
         continue
 
-      for d in ["colors", "embeddings", "objects", "captions"]:
+      for d in ["colors", "objects"]:
         with open(path.join(cls.DIRS[d], f"{qid}.json"), "r") as ifp:
           data = json.load(ifp)
           museum_data[qid] |= data[qid]
 
+      with open(path.join(cls.DIRS["captions"], f"{qid}.json"), "r") as ifp:
+        data = json.load(ifp)
+        museum_data[qid]["captions"] = data[qid]
+
+      with open(path.join(cls.DIRS["embeddings"], f"{qid}.json"), "r") as ifp:
+        data = json.load(ifp)
+        embed_data[qid] = data[qid]
+
     full_data_path = path.join(cls.DIRS["data"], f"{museum_info['file']}_full.json")
-    with open(full_data_path, "w") as ofp:
+    noembed_data_path = path.join(cls.DIRS["data"], f"{museum_info['file']}_no-embeddings.json")
+    embed_data_path = path.join(cls.DIRS["data"], f"{museum_info['file']}_embeddings.json")
+
+    with open(noembed_data_path, "w") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
+    with open(embed_data_path, "w") as ofp:
+      json.dump(embed_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+
+    for k in museum_data.keys():
+      museum_data[k]["embeddings"] = embed_data[k]
+
+    with open(full_data_path, "w") as ofp:
+      json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
 class WikidataMuseum(Museum):
   download_image = Wikidata.download_image
