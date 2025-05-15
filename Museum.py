@@ -12,6 +12,7 @@ from models.CLIP_embedding import Clip
 from models.EnPt import EnPt, PtEn, PartOfSpeech
 from models.LlamaVision import LlamaVision
 from models.Owlv2 import Owlv2
+from models.SigLip2 import SigLip2
 
 from params.detect import OBJS_LABELS_IN as OBJS_LABELS, OBJS_THOLDS
 
@@ -123,7 +124,7 @@ class Museum:
         json.dump(color_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
-  def get_embeddings(cls, museum_info):
+  def get_embeddings(cls, museum_info, model="clip"):
     cls.prep_dirs(museum_info)
     makedirs(cls.DIRS["embeddings"], exist_ok=True)
 
@@ -132,8 +133,11 @@ class Museum:
     qids = sorted(list(museum_data.keys()))
     print(len(qids), "images")
 
-    if not hasattr(cls, "clip"):
-      cls.clip = Clip()
+    if not hasattr(cls, "model"):
+      if model == "clip":
+        cls.model = Clip()
+      elif model == "siglip2":
+        cls.model = SigLip2()
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
@@ -142,13 +146,21 @@ class Museum:
       img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
       embedding_path = path.join(cls.DIRS["embeddings"], f"{qid}.json")
 
-      if (not path.isfile(img_path)) or path.isfile(embedding_path):
+      if (not path.isfile(img_path)):
+        continue
+
+      embedding_data = { qid: {} }
+      if path.isfile(embedding_path):
+        with open(embedding_path, "r") as ifp:
+          embedding_data = json.load(ifp)
+
+      if model in embedding_data[qid]:
         continue
 
       img = PImage.open(img_path)
-      clip_embedding = [round(v, 8) for v in cls.clip.get_embedding(img).tolist()]
+      img_embedding = [round(v, 8) for v in cls.model.get_embedding(img).tolist()]
 
-      embedding_data = { qid: { "clip": clip_embedding } }
+      embedding_data[qid][model] = img_embedding
 
       with open(embedding_path, "w", encoding="utf-8") as ofp:
         json.dump(embedding_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
