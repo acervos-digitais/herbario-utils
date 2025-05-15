@@ -218,7 +218,7 @@ class Museum:
         img_data = ifp.read()
         img = base64.b64encode(img_data).decode()
         llama_vision_caption_en = cls.llama.caption(img)
-        llama_vision_caption_pt = {k:[cls.enpt.translate(w) for w in v] for k,v in llama_vision_caption_en.items()}
+        llama_vision_caption_pt = {k:[cls.enpt.translate(w).lower() for w in v] for k,v in llama_vision_caption_en.items()}
 
         llama_cap = {
           "llama3.2": {

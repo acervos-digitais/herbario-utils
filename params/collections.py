@@ -1,6 +1,6 @@
 MUSEUMS = {
   "paulista": {
-    "label": "museu paulista",
+    "label": "Museu do Ipiranga",
     "dir": "MuseuPaulista",
     "file": "museu_paulista",
     "type": "wikidata",
@@ -8,7 +8,7 @@ MUSEUMS = {
     "objects": ["painting", "drawing", "illustration"]
   },
   "masp": {
-    "label": "masp",
+    "label": "Museu de Arte de São Paulo",
     "dir": "MASP",
     "file": "masp",
     "type": "wikidata",
@@ -16,7 +16,7 @@ MUSEUMS = {
     "objects": ["painting", "drawing", "illustration"]
   },
   "pinacoteca": {
-    "label": "pinacoteca sp",
+    "label": "Pinacoteca de São Paulo",
     "dir": "PinacotecaSP",
     "file": "pinacoteca_sp",
     "type": "wikidata",
@@ -24,7 +24,7 @@ MUSEUMS = {
     "objects": ["painting", "drawing", "illustration"]
   },
   "historico": {
-    "label": "museu historico",
+    "label": "Museu Histórico Nacional",
     "dir": "MuseuHistorico",
     "file": "museu_historico",
     "type": "wikidata",
@@ -32,7 +32,7 @@ MUSEUMS = {
     "objects": ["painting", "drawing", "illustration"]
   },
   "hercule": {
-    "label": "hercule florence",
+    "label": "Instituto Hercule Florence",
     "dir": "HerculeFlorence",
     "file": "hercule_florence",
     "type": "wikidata",
