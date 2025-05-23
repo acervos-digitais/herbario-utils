@@ -17,7 +17,7 @@ OBJECTS_FLORA = {
   "grass": 0.15,
   "shrub": 0.15,
   "bush": 0.15,
-  "flower": 0.15,
+  "flower": 0.125,
   "vegetation": 0.15,
   "greenery": 0.15,
 }
