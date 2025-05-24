@@ -8,7 +8,6 @@ from brasiliana_utils import Brasiliana
 from wikidata_utils import Wikidata
 
 from dominant_colors import get_dominant_colors
-from image_utils import save_crop
 
 from models.CLIP_embedding import Clip
 from models.EnPt import EnPt, PtEn, PartOfSpeech
@@ -312,11 +311,15 @@ class Museum:
 
       image_file_path = path.join(cls.IMGS["full"], fname.replace(".json", ".jpg"))
       image = PImageOps.exif_transpose(PImage.open(image_file_path).convert("RGB"))
+      iw,ih = image.size
 
       for bidx,box in enumerate(iboxes):
-        bifname = f"{fname.replace('.json', '')}_{('0000'+str(bidx))[-3:]}.jpg"
-        bipath = path.join(img_path_crops, bifname)
-        save_crop(image, box["box"], bipath)
+        idx_str = f"00000{bidx}"[-4:]
+        bipath = path.join(img_path_crops, f"{qid}_{idx_str}.jpg")
+
+        x0,y0,x1,y1 = box["box"]
+        bimg = image.crop((int(x0*iw), int(y0*ih), int(x1*iw), int(y1*ih)))
+        bimg.save(bipath)
 
 
 class WikidataMuseum(Museum):
