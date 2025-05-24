@@ -1,13 +1,15 @@
 import base64
 import json
 
-from os import makedirs, path
+from os import listdir, makedirs, path
 from PIL import Image as PImage, ImageOps as PImageOps
 
 from brasiliana_utils import Brasiliana
 from wikidata_utils import Wikidata
 
 from dominant_colors import get_dominant_colors
+from image_utils import save_crop
+
 from models.CLIP_embedding import Clip
 from models.EnPt import EnPt, PtEn, PartOfSpeech
 from models.LlamaVision import LlamaVision
@@ -292,6 +294,30 @@ class Museum:
 
     with open(full_data_path, "w") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+
+  @classmethod
+  def export_object_crops(cls, museum_info):
+    cls.prep_dirs(museum_info)
+    img_path_crops = path.join(cls.DIRS["imgs"], "crops")
+    makedirs(img_path_crops, exist_ok=True)
+
+    obj_files = sorted([f for f in listdir(cls.DIRS["objects"]) if f.endswith(".json")])
+    for fname in obj_files:
+      qid = fname.replace(".json", "")
+      with open(path.join(cls.DIRS["objects"], fname), "r") as inp:
+        iboxes = json.load(inp)[qid]["objects"]
+
+      if len(iboxes) < 1:
+        continue
+
+      image_file_path = path.join(cls.IMGS["full"], fname.replace(".json", ".jpg"))
+      image = PImageOps.exif_transpose(PImage.open(image_file_path).convert("RGB"))
+
+      for bidx,box in enumerate(iboxes):
+        bifname = f"{fname.replace('.json', '')}_{('0000'+str(bidx))[-3:]}.jpg"
+        bipath = path.join(img_path_crops, bifname)
+        save_crop(image, box["box"], bipath)
+
 
 class WikidataMuseum(Museum):
   download_image = Wikidata.download_image
