@@ -7,6 +7,7 @@ from PIL import Image as PImage, ImageOps as PImageOps
 from brasiliana_utils import Brasiliana
 from wikidata_utils import Wikidata
 
+from date_utils import get_year
 from dominant_colors import get_dominant_colors
 
 from models.CLIP_embedding import Clip
@@ -369,6 +370,7 @@ class WikidataMuseum(Museum):
             "museum": museum_info["label"],
             "url": result.get("article", defurlval)["value"],
           }
+          museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))
 
     cls.write_data(museum_data)
 
@@ -427,5 +429,6 @@ class BrasilianaMuseum(Museum):
           item_data[k] = result["data"][v]["value"].replace("&#034;", "")
 
         museum_data[id] = museum_data.get(id, {}) | item_data
+        museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))
 
     cls.write_data(museum_data)
