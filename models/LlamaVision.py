@@ -1,3 +1,4 @@
+import base64
 import json
 
 from ollama import Client
@@ -14,12 +15,30 @@ class Caption(BaseModel):
   objects: list[str]
   description: str
 
+class CommonNouns(BaseModel):
+  generic_nouns: list[str]
+  specific_nouns: list[str]
 
 class LlamaVision:
   def __init__(self, url="http://127.0.0.1:11434"):
     self.client = Client(host=url)
 
-  def caption(self, img):
+  @classmethod
+  def img_to_b64(cls, img_path):
+    with open(img_path, "rb") as ifp:
+      img_data = ifp.read()
+      return base64.b64encode(img_data).decode()
+
+  @classmethod
+  def tob64(cls, path_or_paths):
+    if type(path_or_paths) == str:
+      return LlamaVision.img_tob64(path_or_paths)
+    elif type(path_or_paths) == list:
+      return [LlamaVision.img_to_b64(p) for p in path_or_paths]
+
+  def caption(self, img_path):
+    img = LlamaVision.tob64(img_path)
+
     response = self.client.chat(
       model="llama3.2-vision",
       format=Caption.model_json_schema(),
@@ -65,3 +84,26 @@ class LlamaVision:
     res_obj_ne["unstructured"] = [description]
 
     return res_obj_ne
+
+  def common(self, img_paths):
+    imgs = LlamaVision.tob64(img_paths)
+
+    response = self.client.chat(
+      model="gemma3:4b",
+      format=CommonNouns.model_json_schema(),
+      options={"temperature": 0},
+      messages=[{
+        "role": "user",
+        "content": "Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in portuguese and lowercase.",
+        "images": imgs,
+      }]
+    )
+
+    # get object
+    res_obj = json.loads(response["message"]["content"])
+
+    # turn into list of unique words
+    first_words = [set([w.split(" ")[0].lower() for w in v]) for v in res_obj.values()]
+    common_set = set()
+    common_set = common_set.union(*first_words)
+    return list(common_set)

@@ -1,4 +1,3 @@
-import base64
 import json
 
 from os import listdir, makedirs, path
@@ -212,7 +211,6 @@ class Museum:
     qids = sorted(list(museum_data.keys()))
     print(len(qids), "images")
 
-    OLLAMA_URL = "http://127.0.0.1:11434"
     if not hasattr(cls, "llama"):
       cls.llama = LlamaVision()
     if not hasattr(cls, "enpt"):
@@ -228,23 +226,20 @@ class Museum:
       if (not path.isfile(img_path)) or path.isfile(caption_path):
         continue
 
-      with open(img_path, "rb") as ifp:
-        img_data = ifp.read()
-        img = base64.b64encode(img_data).decode()
-        llama_vision_caption_en = cls.llama.caption(img)
-        llama_vision_caption_pt = {k:[cls.enpt.translate(w).lower() for w in v] for k,v in llama_vision_caption_en.items()}
+      llama_vision_caption_en = cls.llama.caption(img_path)
+      llama_vision_caption_pt = {k:[cls.enpt.translate(w).lower() for w in v] for k,v in llama_vision_caption_en.items()}
 
-        llama_cap = {
-          "llama3.2": {
-            "en": llama_vision_caption_en,
-            "pt": llama_vision_caption_pt
-          }
+      llama_cap = {
+        "llama3.2": {
+          "en": llama_vision_caption_en,
+          "pt": llama_vision_caption_pt
         }
+      }
 
-        cap_data = { qid: llama_cap }
+      cap_data = { qid: llama_cap }
 
-        with open(caption_path, "w", encoding="utf-8") as ofp:
-          json.dump(cap_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
+      with open(caption_path, "w", encoding="utf-8") as ofp:
+        json.dump(cap_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
   def combine_data(cls, museum_info):
