@@ -94,7 +94,7 @@ class LlamaVision:
       options={"temperature": 0},
       messages=[{
         "role": "user",
-        "content": "Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in portuguese and lowercase.",
+        "content": "Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in english.",
         "images": imgs,
       }]
     )
