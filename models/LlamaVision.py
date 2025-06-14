@@ -20,6 +20,11 @@ class CommonNouns(BaseModel):
   specific_nouns: list[str]
 
 class LlamaVision:
+  LANGS = {
+    "en": "english",
+    "pt": "portuguese"
+  }
+
   def __init__(self, url="http://127.0.0.1:11434"):
     self.client = Client(host=url)
 
@@ -85,8 +90,9 @@ class LlamaVision:
 
     return res_obj_ne
 
-  def common(self, img_paths):
+  def common(self, img_paths, lang="en"):
     imgs = LlamaVision.tob64(img_paths)
+    language = LlamaVision.LANGS.get(lang, "english")
 
     response = self.client.chat(
       model="gemma3:4b",
@@ -94,7 +100,7 @@ class LlamaVision:
       options={"temperature": 0},
       messages=[{
         "role": "user",
-        "content": "Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in english.",
+        "content": f"Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
         "images": imgs,
       }]
     )
