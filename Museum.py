@@ -21,7 +21,7 @@ class Museum:
   @classmethod
   def prep_dirs(cls, museum_info):
     cls.DIRS = {
-      "data": f"./metadata/json/{museum_info['dir']}",
+      "data": f"./metadata/json/{museum_info["dir"]}",
       "imgs": f"../../imgs/arts"
     }
 
@@ -32,7 +32,7 @@ class Museum:
     for d in ["500", "900", "full"]:
       cls.IMGS[d] = path.join(cls.DIRS["imgs"], d)
 
-    cls.INFO_PATH = path.join(cls.DIRS["data"], f"{museum_info['file']}.json")
+    cls.INFO_PATH = path.join(cls.DIRS["data"], f"{museum_info["file"]}.json")
 
   @classmethod
   def read_data(cls):
@@ -274,9 +274,9 @@ class Museum:
         data = json.load(ifp)
         embed_data[qid] = data[qid]
 
-    full_data_path = path.join(cls.DIRS["data"], f"{museum_info['file']}_full.json")
-    noembed_data_path = path.join(cls.DIRS["data"], f"{museum_info['file']}_no-embeddings.json")
-    embed_data_path = path.join(cls.DIRS["data"], f"{museum_info['file']}_embeddings.json")
+    full_data_path = path.join(cls.DIRS["data"], f"{museum_info["file"]}_full.json")
+    noembed_data_path = path.join(cls.DIRS["data"], f"{museum_info["file"]}_no-embeddings.json")
+    embed_data_path = path.join(cls.DIRS["data"], f"{museum_info["file"]}_embeddings.json")
 
     with open(noembed_data_path, "w") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
@@ -346,13 +346,16 @@ class WikidataMuseum(Museum):
           defurlval = {"value": f"https://www.wikidata.org/wiki/{id}"}
 
           if id in museum_data:
+            cats = set(museum_data[id]["categories"])
+            cats.add(category)
+            museum_data[id]["categories"] = list(cats)
             continue
 
           depicts = Wikidata.run_depicts_query(id)
 
           museum_data[id] = {
             "id": result["qid"]["value"],
-            "category": category,
+            "categories": [category],
             "depicts": {
               "en": [d["depicts_en"]["value"] for d in depicts],
               "pt": [d["depicts_pt"]["value"] for d in depicts]
@@ -410,7 +413,7 @@ class BrasilianaMuseum(Museum):
 
         item_data = {
           "id": result["id"],
-          "category": category,
+          "categories": [category],
           "depicts": {
             "en": dep_en,
             "pt": dep_pt
