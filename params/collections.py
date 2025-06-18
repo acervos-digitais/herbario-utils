@@ -1,6 +1,6 @@
 MUSEUMS = {
   "paulista": {
-    "label": "Museu do Ipiranga",
+    "label": "Museu Paulista",
     "dir": "MuseuPaulista",
     "file": "museu_paulista",
     "type": "wikidata",

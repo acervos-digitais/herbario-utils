@@ -21,7 +21,7 @@ class Museum:
   @classmethod
   def prep_dirs(cls, museum_info):
     cls.DIRS = {
-      "data": f"./metadata/json/{museum_info["dir"]}",
+      "data": path.join("./metadata/json", museum_info["dir"]),
       "imgs": f"../../imgs/arts"
     }
 
@@ -32,7 +32,7 @@ class Museum:
     for d in ["500", "900", "full"]:
       cls.IMGS[d] = path.join(cls.DIRS["imgs"], d)
 
-    cls.INFO_PATH = path.join(cls.DIRS["data"], f"{museum_info["file"]}.json")
+    cls.INFO_PATH = path.join(cls.DIRS["data"], museum_info["file"] + ".json")
 
   @classmethod
   def read_data(cls):
@@ -274,9 +274,9 @@ class Museum:
         data = json.load(ifp)
         embed_data[qid] = data[qid]
 
-    full_data_path = path.join(cls.DIRS["data"], f"{museum_info["file"]}_full.json")
-    noembed_data_path = path.join(cls.DIRS["data"], f"{museum_info["file"]}_no-embeddings.json")
-    embed_data_path = path.join(cls.DIRS["data"], f"{museum_info["file"]}_embeddings.json")
+    full_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_full.json")
+    noembed_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_no-embeddings.json")
+    embed_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_embeddings.json")
 
     with open(noembed_data_path, "w") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
