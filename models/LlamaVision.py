@@ -37,15 +37,15 @@ class LlamaVision:
   @classmethod
   def tob64(cls, path_or_paths):
     if type(path_or_paths) == str:
-      return LlamaVision.img_tob64(path_or_paths)
+      return LlamaVision.img_to_b64(path_or_paths)
     elif type(path_or_paths) == list:
       return [LlamaVision.img_to_b64(p) for p in path_or_paths]
 
-  def caption(self, img_path):
+  def caption(self, img_path, model="gemma3:4b"):
     img = LlamaVision.tob64(img_path)
 
     response = self.client.chat(
-      model="llama3.2-vision",
+      model=model,
       format=Caption.model_json_schema(),
       options={"temperature": 0},
       messages=[{
