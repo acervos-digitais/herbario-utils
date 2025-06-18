@@ -9,7 +9,7 @@ from wikidata_utils import Wikidata
 from date_utils import get_year
 from dominant_colors import get_dominant_colors
 
-from models.CLIP_embedding import Clip
+from models.CLIP import Clip
 from models.EnPt import EnPt, PtEn, PartOfSpeech
 from models.LlamaVision import LlamaVision
 from models.Owlv2 import Owlv2
