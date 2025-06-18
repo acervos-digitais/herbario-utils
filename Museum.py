@@ -202,7 +202,7 @@ class Museum:
         json.dump(object_data, of, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
-  def get_captions(cls, museum_info):
+  def get_captions(cls, museum_info, model="gemma3:4b"):
     cls.prep_dirs(museum_info)
     makedirs(cls.DIRS["captions"], exist_ok=True)
 
@@ -223,20 +223,29 @@ class Museum:
       img_path = path.join(cls.IMGS["900"], f"{qid}.jpg")
       caption_path = path.join(cls.DIRS["captions"], f"{qid}.json")
 
-      if (not path.isfile(img_path)) or path.isfile(caption_path):
+      if (not path.isfile(img_path)):
         continue
 
-      llama_vision_caption_en = cls.llama.caption(img_path)
-      llama_vision_caption_pt = {k:[cls.enpt.translate(w).lower() for w in v] for k,v in llama_vision_caption_en.items()}
+      cap_data = { qid: {} }
+      if path.isfile(caption_path):
+        with open(caption_path, "r") as ifp:
+          cap_data = json.load(ifp)
 
-      llama_cap = {
-        "llama3.2": {
-          "en": llama_vision_caption_en,
-          "pt": llama_vision_caption_pt
+      if model in cap_data[qid]:
+        continue
+
+      caption_en = cls.llama.caption(img_path, model=model)
+      caption_pt = {k:[cls.enpt.translate(w).lower() for w in v] for k,v in caption_en.items()}
+
+      model_name = model.split(":")[0].split("-")[0]
+      model_cap = {
+        model_name: {
+          "en": caption_en,
+          "pt": caption_pt
         }
       }
 
-      cap_data = { qid: llama_cap }
+      cap_data = { qid: model_cap }
 
       with open(caption_path, "w", encoding="utf-8") as ofp:
         json.dump(cap_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
