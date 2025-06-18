@@ -66,10 +66,11 @@ class Wikidata:
   def prep_category_query(cls, object_category, location):
     # https://w.wiki/DtAY
     # https://w.wiki/DtAh
+    # https://w.wiki/EWda
     i2l = "P195" if "collection" in location else "P276"
 
     return f"""
-      SELECT DISTINCT ?item ?itemLabel ?qid ?image ?creatorLabel ?date ?article WHERE {{
+      SELECT DISTINCT ?item ?label_en ?label_pt ?qid ?image ?creatorLabel ?date ?article WHERE {{
       SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
       ?item wdt:{i2l} wd:{cls.QCODES[location]}.
       ?item wdt:P18 ?image.
@@ -77,6 +78,9 @@ class Wikidata:
       ?item wdt:P31 wd:{cls.QCODES[object_category]}.
 
       BIND(STRAFTER(STR(?item), STR(wd:)) AS ?qid).
+
+      ?item rdfs:label ?label_en FILTER (lang(?label_en) = "en")
+      ?item rdfs:label ?label_pt FILTER (lang(?label_pt) = "pt")
 
       OPTIONAL {{ ?item wdt:P170 ?creator. }}
       OPTIONAL {{ ?item wdt:P571 ?date. }}

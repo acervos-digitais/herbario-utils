@@ -31,16 +31,16 @@ MUSEUMS = {
     "collection": True,
     "objects": ["painting", "drawing", "illustration"]
   },
-  "hercule": {
-    "label": "Instituto Hercule Florence",
-    "dir": "HerculeFlorence",
-    "file": "hercule_florence",
+  "hercules": {
+    "label": "Instituto Hércules Florence",
+    "dir": "HerculesFlorence",
+    "file": "hercules_florence",
     "type": "wikidata",
     "collection": True,
     "objects": ["watercolor painting", "illustration"]
   },
   "brasiliana": {
-    "label": "brasiliana",
+    "label": "Brasiliana",
     "dir": "Brasiliana",
     "file": "brasiliana",
     "type": "tainacan",

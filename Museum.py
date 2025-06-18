@@ -349,16 +349,15 @@ class WikidataMuseum(Museum):
             continue
 
           depicts = Wikidata.run_depicts_query(id)
-          instance = Wikidata.run_instance_query(id)
 
           museum_data[id] = {
             "id": result["qid"]["value"],
-            "categories": [i["inst_en"]["value"] for i in instance],
+            "category": category,
             "depicts": {
               "en": [d["depicts_en"]["value"] for d in depicts],
               "pt": [d["depicts_pt"]["value"] for d in depicts]
             },
-            "title": result["itemLabel"]["value"],
+            "title": result["label_pt"]["value"],
             "date": result.get("date", defval)["value"],
             "creator": result.get("creatorLabel", defval)["value"],
             "image": result["image"]["value"],
@@ -411,7 +410,7 @@ class BrasilianaMuseum(Museum):
 
         item_data = {
           "id": result["id"],
-          "categories": [category],
+          "category": category,
           "depicts": {
             "en": dep_en,
             "pt": dep_pt
