@@ -33,7 +33,7 @@ class Museum:
     for d in ["500", "900", "full"]:
       cls.IMGS[d] = path.join(cls.DIRS["imgs"], d)
 
-    cls.INFO_PATH = path.join(cls.DIRS["data"], museum_info["file"] + ".json")
+    cls.INFO_PATH = path.join(cls.DIRS["data"], museum_info["file"] + "_metadata.json")
 
   @classmethod
   def read_data(cls):
@@ -284,21 +284,21 @@ class Museum:
         data = json.load(ifp)
         embed_data[qid] = data[qid]
 
-    full_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_full.json")
-    noembed_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_no-embeddings.json")
-    embed_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_embeddings.json")
+    processed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_processed.json")
+    embed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_embeddings.json")
 
-    with open(noembed_data_path, "w") as ofp:
+    with open(processed_path, "w") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
-    with open(embed_data_path, "w") as ofp:
+    with open(embed_path, "w") as ofp:
       json.dump(embed_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
-    for k in museum_data.keys():
-      museum_data[k]["embeddings"] = embed_data[k]
+    # for k in museum_data.keys():
+    #   museum_data[k]["embeddings"] = embed_data[k]
 
-    with open(full_data_path, "w") as ofp:
-      json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+    # full_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_full.json")
+    # with open(full_data_path, "w") as ofp:
+    #   json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
   @classmethod
   def export_object_crops(cls, museum_info):
