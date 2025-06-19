@@ -437,10 +437,13 @@ class BrasilianaMuseum(Museum):
 
         id = result["id"]
 
+        depicts = { "en": [], "pt": [] }
+
         desc_pt = result["data"]["description"]["value"].replace("&#034;", "")
-        desc_en = cls.pten.translate(desc_pt).lower()
-        dep_en = cls.pos.get_nouns(desc_en)
-        dep_pt = [cls.enpt.translate(t).lower() for t in dep_en]
+        if desc_pt != "" and len(desc_pt) > 2:
+          desc_en = cls.pten.translate(desc_pt).lower()
+          depicts["en"] = cls.pos.get_nouns(desc_en)
+          depicts["pt"] = [cls.enpt.translate(t).lower() for t in depicts["en"]]
 
         if id in museum_data:
           cats = set(museum_data[id]["categories"])
@@ -451,10 +454,7 @@ class BrasilianaMuseum(Museum):
         item_data = {
           "id": result["id"],
           "categories": [category],
-          "depicts": {
-            "en": dep_en,
-            "pt": dep_pt
-          },
+          "depicts": depicts,
           "image": result["document"]["value"],
           "url": result["url"]
         }
