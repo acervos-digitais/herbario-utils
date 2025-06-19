@@ -482,3 +482,5 @@ class MacUspMuseum(Museum):
           "url": row["url"],
         }
         museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))
+
+    cls.write_data(museum_data)
