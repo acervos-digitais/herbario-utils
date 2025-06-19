@@ -1,3 +1,4 @@
+import csv
 import json
 
 from os import listdir, makedirs, path
@@ -337,9 +338,9 @@ class WikidataMuseum(Museum):
 
     defval = {"value": "unknown"}
 
-    locations = [museum_info["label"]]
+    locations = [museum_info["file"]]
     if museum_info["collection"]:
-      locations.append(museum_info["label"] + " collection")
+      locations.append(museum_info["file"] + " collection")
 
     for category in museum_info["objects"]:
       for location in locations:
@@ -438,3 +439,46 @@ class BrasilianaMuseum(Museum):
         museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))
 
     cls.write_data(museum_data)
+
+class MacUspMuseum(Museum):
+  download_image = Wikidata.download_image
+
+  @classmethod
+  def get_metadata(cls, museum_info):
+    MACUSP_CATEGORIES = {
+      "painting": "pintura",
+      "drawing": "desenho",
+    }
+
+    Museum.get_metadata(museum_info)
+    museum_data = cls.read_data()
+
+    with open(museum_info["path"], "r") as file:
+      reader = csv.DictReader(file)
+
+      for row in reader:
+        id = "MU" + str(row["id"])
+
+        if row["image"] == "":
+          continue
+
+        categories = []
+        for cat in museum_info["objects"]:
+          if MACUSP_CATEGORIES[cat] in row["category"].lower():
+            categories.append(cat)
+
+        if len(categories) < 1:
+          continue
+
+        museum_data[id] = {
+          "id": id,
+          "categories": categories,
+          "depicts": { "en": [], "pt": [] },
+          "title": row["title"],
+          "date": str(row["date"]).replace(";", ""),
+          "creator": row["artist"],
+          "image": row["image"],
+          "museum": museum_info["label"],
+          "url": row["url"],
+        }
+        museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))

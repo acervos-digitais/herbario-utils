@@ -1,5 +1,5 @@
 MUSEUMS = {
-  "paulista": {
+  "museu_paulista": {
     "label": "Museu Paulista",
     "dir": "MuseuPaulista",
     "file": "museu_paulista",
@@ -15,7 +15,7 @@ MUSEUMS = {
     "collection": False,
     "objects": ["painting", "drawing", "illustration"]
   },
-  "pinacoteca": {
+  "pinacoteca_sp": {
     "label": "Pinacoteca de São Paulo",
     "dir": "PinacotecaSP",
     "file": "pinacoteca_sp",
@@ -23,7 +23,7 @@ MUSEUMS = {
     "collection": True,
     "objects": ["painting", "drawing", "illustration"]
   },
-  "historico": {
+  "museu_historico": {
     "label": "Museu Histórico Nacional",
     "dir": "MuseuHistorico",
     "file": "museu_historico",
@@ -31,7 +31,7 @@ MUSEUMS = {
     "collection": True,
     "objects": ["painting", "drawing", "illustration"]
   },
-  "hercules": {
+  "hercules_florence": {
     "label": "Instituto Hércules Florence",
     "dir": "HerculesFlorence",
     "file": "hercules_florence",
@@ -46,5 +46,14 @@ MUSEUMS = {
     "type": "tainacan",
     "collection": False,
     "objects": ["painting", "drawing"]
-  }
+  },
+  "macusp": {
+    "label": "MAC USP",
+    "dir": "MACUSP",
+    "file": "macusp",
+    "type": "macusp",
+    "collection": False,
+    "objects": ["painting", "drawing"],
+    "path": "./metadata/csv/macusp.csv"
+  },
 }
