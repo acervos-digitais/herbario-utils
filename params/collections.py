@@ -5,7 +5,7 @@ MUSEUMS = {
     "file": "museu_paulista",
     "type": "wikidata",
     "collection": True,
-    "objects": ["painting", "drawing", "illustration"]
+    "objects": ["painting", "drawing"]
   },
   "masp": {
     "label": "Museu de Arte de São Paulo",
@@ -13,7 +13,7 @@ MUSEUMS = {
     "file": "masp",
     "type": "wikidata",
     "collection": False,
-    "objects": ["painting", "drawing", "illustration"]
+    "objects": ["painting", "drawing"]
   },
   "pinacoteca_sp": {
     "label": "Pinacoteca de São Paulo",
@@ -21,7 +21,7 @@ MUSEUMS = {
     "file": "pinacoteca_sp",
     "type": "wikidata",
     "collection": True,
-    "objects": ["painting", "drawing", "illustration"]
+    "objects": ["painting", "drawing"]
   },
   "museu_historico": {
     "label": "Museu Histórico Nacional",
@@ -29,7 +29,7 @@ MUSEUMS = {
     "file": "museu_historico",
     "type": "wikidata",
     "collection": True,
-    "objects": ["painting", "drawing", "illustration"]
+    "objects": ["painting", "drawing"]
   },
   "hercules_florence": {
     "label": "Instituto Hércules Florence",

@@ -358,6 +358,11 @@ class Museum:
 class WikidataMuseum(Museum):
   download_image = Wikidata.download_image
 
+  CAT2LABEL = {
+    "watercolor painting": "painting",
+    "illustration": "drawing",
+  }
+
   @classmethod
   def get_metadata(cls, museum_info):
     Museum.get_metadata(museum_info)
@@ -375,6 +380,8 @@ class WikidataMuseum(Museum):
 
         cResults = Wikidata.run_category_query(category, location)
 
+        cat_label = cls.CAT2LABEL.get(category, category)
+
         for cnt,result in enumerate(cResults):
           if cnt % 100 == 0:
             print(cnt)
@@ -384,7 +391,7 @@ class WikidataMuseum(Museum):
 
           if id in museum_data:
             cats = set(museum_data[id]["categories"])
-            cats.add(category)
+            cats.add(cat_label)
             museum_data[id]["categories"] = list(cats)
             continue
 
@@ -392,7 +399,7 @@ class WikidataMuseum(Museum):
 
           museum_data[id] = {
             "id": result["qid"]["value"],
-            "categories": [category],
+            "categories": [cat_label],
             "depicts": {
               "en": [d["depicts_en"]["value"] for d in depicts],
               "pt": [d["depicts_pt"]["value"] for d in depicts]
@@ -470,13 +477,13 @@ class BrasilianaMuseum(Museum):
 class MacUspMuseum(Museum):
   download_image = Wikidata.download_image
 
+  LABEL2CATEGORY = {
+    "painting": "pintura",
+    "drawing": "desenho",
+  }
+
   @classmethod
   def get_metadata(cls, museum_info):
-    MACUSP_CATEGORIES = {
-      "painting": "pintura",
-      "drawing": "desenho",
-    }
-
     Museum.get_metadata(museum_info)
     museum_data = cls.read_data()
 
@@ -491,7 +498,7 @@ class MacUspMuseum(Museum):
 
         categories = []
         for cat in museum_info["objects"]:
-          if MACUSP_CATEGORIES[cat] in row["category"].lower():
+          if cls.LABEL2CATEGORY[cat] in row["category"].lower():
             categories.append(cat)
 
         if len(categories) < 1:
