@@ -1,7 +1,6 @@
 import numpy as np
 
 from matplotlib import pyplot as plt
-from os import path
 
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
@@ -9,6 +8,14 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from PIL import Image as PImage
+
+def raw_kmeans(emb_raw, n_clusters=8):
+  mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
+
+  emb_clusters = mCluster.fit_predict(StandardScaler().fit_transform(emb_raw))
+
+  return emb_raw, emb_clusters, mCluster.cluster_centers_
+
 
 def pca_kmeans(emb_raw, n_clusters=8, n_components=128):
   n_components = min(n_components, len(emb_raw))

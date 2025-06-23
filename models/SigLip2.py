@@ -1,4 +1,7 @@
+import PIL.Image as PImage
 import torch
+
+from sklearn.metrics.pairwise import cosine_distances
 
 from transformers import AutoModel, AutoProcessor
 from warnings import simplefilter
@@ -18,6 +21,23 @@ class SigLip2:
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)
 
     with torch.no_grad():
-      my_embedding = self.model.get_image_features(**input).detach().squeeze()
+      my_embedding = self.model.get_image_features(**input).detach().cpu().squeeze()
 
     return my_embedding
+
+  def zero_shot(self, img, tags, prefix="painting with a"):
+    texts = [f"{prefix} {t}" for t in tags]
+
+    img_embedding = img
+    if isinstance(img, PImage.Image):
+      img_embedding = self.get_embedding(img).cpu()
+
+    txt_input = self.processor(text=texts, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
+
+    with torch.no_grad():
+      txt_embedding = self.model.get_text_features(**txt_input).cpu()
+
+    dists = cosine_distances(img_embedding.reshape(1, -1), txt_embedding)
+
+    tag_idxs_by_distance = dists[0].argsort()
+    return [tags[idx] for idx in tag_idxs_by_distance]
