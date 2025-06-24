@@ -4,11 +4,11 @@ import json
 from os import listdir, makedirs, path
 from PIL import Image as PImage, ImageOps as PImageOps
 
-from brasiliana_utils import Brasiliana
-from wikidata_utils import Wikidata
+from utils.brasiliana_utils import Brasiliana
+from utils.wikidata_utils import Wikidata
 
-from date_utils import get_year
-from dominant_colors import get_dominant_colors
+from utils.date_utils import get_year
+from utils.color_utils import get_dominant_colors
 
 from models.CLIP import Clip
 from models.EnPt import EnPt, PtEn, PartOfSpeech
