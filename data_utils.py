@@ -43,6 +43,37 @@ def get_caption_words(data_path, model="gemma3", lang="en", categories=["all"], 
   else:
     return [w for w,_ in words]
 
+
+def export_preload_data(data_prefix, fields, out_file_name="preload.json"):
+  input_file_path = f"./metadata/json/{data_prefix}_processed.json"
+  output_file_path = f"./metadata/json/{data_prefix}_{out_file_name}"
+
+  with open(input_file_path, "r") as ifp:
+    obj_data = json.load(ifp)
+
+  preload_data = { f: {} for f in fields }
+
+  for k,v in obj_data.items():
+    for f in fields:
+      f_vals = v[f]
+      if type(f_vals) != list:
+        f_vals = [f_vals]
+
+      for val in f_vals:
+        if type(val) == dict and "label" in val:
+          val = val["label"]
+        if val not in preload_data[f]:
+          preload_data[f][val] = []
+        preload_data[f][val].append(k)
+
+  for k in list(preload_data.keys()):
+    if k[-1] != "s":
+      preload_data[k+"s"] = preload_data.pop(k)
+
+  with open(output_file_path, "w") as ofp:
+    json.dump(preload_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+
+
 class Clusterer:
   def __init__(self, data_prefix, images_dir_path):
     self.data_prefix = data_prefix
