@@ -5,7 +5,7 @@ import numpy as np
 from os import path
 from sklearn.metrics.pairwise import euclidean_distances
 
-from cluster_utils import tsne_kmeans
+from .cluster_utils import tsne_kmeans
 from models.LlamaVision import LlamaVision
 from models.SigLip2 import SigLip2
 
