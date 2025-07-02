@@ -26,6 +26,30 @@ class Owlv2:
     good_max = box_width < 0.8 or box_height < 0.8
     return good_min and good_max and score > tholds[label.item()]
 
+  @classmethod
+  def iou(cls, boxA, boxB, return_areas=False):
+    # determine the (x, y)-coordinates of the intersection rectangle
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    # compute the area of intersection rectangle
+    intersection = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+
+    # compute the area of both rectangles
+    areaA = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    areaB = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+    # compute the intersection over union:
+    # union is sum of both areas minus intersection
+    iou = intersection / float(areaA + areaB - intersection)
+
+    if return_areas:
+      return iou, intersection, areaA, areaB
+    else:
+      return iou
+
   def __init__(self, model=None):
     model_name = Owlv2.MODEL_NAME if model is None else model
     self.processor = Owlv2Processor.from_pretrained(model_name)
@@ -40,7 +64,7 @@ class Owlv2:
     slbs = zip(res[0]["scores"], res[0]["labels"], res[0]["boxes"])
     iw, ih = img.size
 
-    detected_objs = [{"score": s, "label": labels[l.item()], "box": Owlv2.px_to_pct(b, iw, ih)}
+    detected_objs = [{"score": s.item(), "label": labels[l.item()], "box": Owlv2.px_to_pct(b, iw, ih)}
                      for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih)]
     return detected_objs
 
@@ -48,11 +72,39 @@ class Owlv2:
     detected_objs = self.run_object_detection(img, labels, tholds)
     by_label_score = sorted(detected_objs, key=lambda x: (x["label"], x["score"]))
     unique_label = {o["label"]: o["box"] for o in by_label_score}
-    return [{"label": k, "box": v} for k,v in unique_label.items()]
+    return [{"box": v, "label": k} for k,v in unique_label.items()]
 
   def all_objects(self, img, labels, tholds):
     detected_objs = self.run_object_detection(img, labels, tholds)
     return [{k: o[k] for k in ["box", "label"]} for o in detected_objs]
+
+  def iou_objects(self, img, labels, tholds, iou_thold=0.8):
+    detected_objs = self.run_object_detection(img, labels, tholds)
+
+    by_label = {}
+    for obj in detected_objs:
+      by_label[obj["label"]] = by_label.get(obj["label"], []) + [obj["box"]]
+
+    ioud_by_label = {}
+    for k, all_boxes in by_label.items():
+      keep = all_boxes[:1]
+      for boxA in all_boxes[1:]:
+        new_keep = []
+        keepA = True
+        for boxB in keep:
+          iouAB, _, areaA, areaB = self.iou(boxA, boxB, return_areas=True)
+          if iouAB < iou_thold:
+            new_keep.append(boxB)
+          elif areaA < areaB:
+            keepA = False
+            new_keep.append(boxB)
+        if keepA:
+          new_keep.append(boxA)
+
+        keep = new_keep[:]
+      ioud_by_label[k] = keep
+
+    return [{"box": b, "label": k} for k,v in ioud_by_label.items() for b in v]
 
   def get_objectness_boxes(self, img, topk=8):
     tsize = [img.size[::-1]]

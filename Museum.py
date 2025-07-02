@@ -194,7 +194,7 @@ class Museum:
 
       image_boxes = []
       for labels,tholds in zip(OBJS_LABELS, OBJS_THOLDS):
-        obj_boxes = cls.owl.all_objects(image, labels, tholds)
+        obj_boxes = cls.owl.iou_objects(image, labels, tholds)
         image_boxes += obj_boxes
 
       object_data = { qid: { "objects": image_boxes}}
