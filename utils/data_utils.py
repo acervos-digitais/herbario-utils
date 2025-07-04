@@ -10,16 +10,22 @@ from models.LlamaVision import LlamaVision
 from models.SigLip2 import SigLip2
 
 STOP_WORDS = {
-  "en": ["form", "forms", "subject", "subjects", "figure", "figures", "observer", "observers", "viewer", "viewers", "background", "apparition"],
-  "pt": ["formulários", "formulário", "hóspede", "hóspedes", "estudioso", "estudiosos", "observador", "observadores", "figura", "figuras", "colono", "colonos", "caracteres", "subcrescimento", "sendo", "marfim", "assinatura", "pescoço", "ver", "vénus"]
+  "en": ["image", "images", "member", "members", "form", "forms", "subject", "subjects", "figure", "figures", "observer", "observers", "viewer", "viewers", "background", "apparition", "shoulder", "shoulders", "e-mail", "email", "generic"],
+  "pt": ["imagem", "imagens", "membro", "membros", "formulários", "formulário", "hóspede", "hóspedes", "residente", "residentes", "estudioso", "estudiosos", "observador", "observadores", "figura", "figuras", "colono", "colonos", "caracteres", "subcrescimento", "sendo", "marfim", "assinatura", "pescoço", "ver", "vénus", "sketch", "ombro", "ombros", "e-mail", "email", "geral", "townfolk", "negro", "negros", "negra", "negras"]
 }
 
-REPLACE = {
+REPLACE_WORDS = {
   "en": {},
   "pt": {
     "acidente vascular cerebral": "pincelada",
     "ainda vida": "natureza morta",
+    "gola": "colar",
   }
+}
+
+ADD_WORDS = {
+  "en": ["abstraction", "geometric shapes", "outdoor scene", "cartoon", "expressionism", "modern art", "religious scene"],
+  "pt": ["abstração", "figuras geométricas", "cena externa", "ao ar livre", "caricatura", "expressionismo", "arte moderna", "cena religiosa"]
 }
 
 def get_caption_words(data_path, model="gemma3", lang="en", categories=["all"], return_counts=False):
@@ -31,12 +37,15 @@ def get_caption_words(data_path, model="gemma3", lang="en", categories=["all"], 
     for obj_cat in categories:
       for raw_word in obj["captions"][model][lang].get(obj_cat, []):
         word = raw_word.lower().replace(".", "")
-        word = REPLACE[lang].get(word, word)
+        word = REPLACE_WORDS[lang].get(word, word)
         if word not in STOP_WORDS[lang]:
           all_words[word] = all_words.get(word, 0) + 1
 
   word_cnts = [[w, c] for w,c in all_words.items()]
-  words = sorted(word_cnts, key=lambda x:x[1], reverse=True)
+  words_sorted = sorted(word_cnts, key=lambda x:x[1], reverse=True)
+
+  add_words = [[w, words_sorted[0][1]] for w in ADD_WORDS[lang]]
+  words = add_words + words_sorted
 
   if return_counts:
     return words
@@ -135,7 +144,7 @@ class Clusterer:
     return descriptions
 
 
-  def describe_by_siglip2(self, ids_by_distance, num_images=100, max_words=10, word_list_limit=500):
+  def describe_by_siglip2(self, ids_by_distance, num_images=48, words_offset=2, max_words=8, word_list_limit=500):
     if self.siglip == None:
       self.siglip = SigLip2()
       self.words = {
@@ -152,7 +161,7 @@ class Clusterer:
     for cluster_avg in embeddings_avg:
       img_tags_en = self.siglip.zero_shot(cluster_avg, self.words["en"])
       img_tags_pt = self.siglip.zero_shot(cluster_avg, self.words["pt"], prefix="pintura mostrando")
-      descriptions["en"].append(img_tags_en[:max_words])
-      descriptions["pt"].append(img_tags_pt[:max_words])
+      descriptions["en"].append(img_tags_en[words_offset : max_words + words_offset])
+      descriptions["pt"].append(img_tags_pt[words_offset : max_words + words_offset])
 
     return descriptions
