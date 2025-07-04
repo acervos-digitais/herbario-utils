@@ -2,7 +2,7 @@ import base64
 import json
 
 from ollama import Client
-from pydantic import BaseModel
+from pydantic import BaseModel, conlist
 
 class Caption(BaseModel):
   people: list[str]
@@ -16,8 +16,8 @@ class Caption(BaseModel):
   description: str
 
 class CommonNouns(BaseModel):
-  generic_nouns: list[str]
-  specific_nouns: list[str]
+  generic_nouns: conlist(str, min_length=2, max_length=4)
+  specific_nouns: conlist(str, min_length=2, max_length=4)
 
 class LlamaVision:
   LANGS = {
@@ -100,6 +100,7 @@ class LlamaVision:
       options={"temperature": 0},
       messages=[{
         "role": "user",
+        # "content": f"Using few words, what do these paintings have in common? Give a generic description about the style of the paintings using 2 or 3 words and a more specific description about the content of the painting using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
         "content": f"Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
         "images": imgs,
       }]
