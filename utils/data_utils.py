@@ -97,7 +97,7 @@ class Clusterer:
 
     self.cluster_data = {}
 
-  def export_clusters(self, out_file_name, embedding_model="siglip2", min_nc=2, max_nc=17, step_nc=2, describe="vlm", **describe_params):
+  def export_clusters(self, out_file_name, embedding_model="siglip2", min_nc=2, max_nc=17, step_nc=2, describe="all", **describe_params):
     ids = np.array(list(self.embedding_data.keys()))
     embeddings = np.array([v[embedding_model] for v in self.embedding_data.values()])
 
@@ -110,10 +110,15 @@ class Clusterer:
 
       i_c_d = zip(ids.tolist(), clusters.tolist(), cluster_distances.T.tolist())
 
-      if describe == "vlm":
-        descriptions = self.describe_by_vlm(ids_by_distance, **describe_params)
+      if describe == "gemma3":
+        descriptions = {describe: self.describe_by_vlm(ids_by_distance, **describe_params)}
+      elif describe == "siglip2":
+        descriptions = {describe: self.describe_by_siglip2(ids_by_distance, **describe_params)}
       else:
-        descriptions = self.describe_by_siglip2(ids_by_distance, **describe_params)
+        descriptions = {
+          "gemma3" : self.describe_by_vlm(ids_by_distance),
+          "siglip2": self.describe_by_siglip2(ids_by_distance)
+        }
 
       self.cluster_data[nc] = {
         "images": {id: {"cluster": c, "distances": [round(d,6) for d in ds]} for  id,c,ds in i_c_d},
