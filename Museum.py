@@ -194,10 +194,12 @@ class Museum:
 
       image_boxes = []
       for labels,tholds in zip(OBJS_LABELS, OBJS_THOLDS):
-        obj_boxes = cls.owl.iou_objects(image, labels, tholds)
+        obj_boxes = cls.owl.all_objects(image, labels, tholds)
         image_boxes += obj_boxes
 
-      object_data = { qid: { "objects": image_boxes}}
+      image_boxes_iou = Owlv2.filter_by_iou(image_boxes)
+
+      object_data = { qid: { "objects": image_boxes_iou}}
 
       with open(object_path, "w", encoding="utf-8") as of:
         json.dump(object_data, of, sort_keys=True, separators=(",",":"), ensure_ascii=False)

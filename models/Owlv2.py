@@ -50,6 +50,65 @@ class Owlv2:
     else:
       return iou
 
+  @classmethod
+  def remove_duplicate_by_score(cls, detected_objs):
+    keep = detected_objs[:1]
+    for boxObjA in detected_objs[1:]:
+      new_keep = []
+      boxA = boxObjA["box"]
+      scoreA = boxObjA["score"]
+      keepA = True
+      for boxObjB in keep:
+        boxB = boxObjB["box"]
+        scoreB = boxObjB["score"]
+        same_box = sum([abs(axy - bxy) for axy, bxy in zip(boxA, boxB)]) < 0.001
+
+        if not same_box:
+          new_keep.append(boxObjB)
+        elif scoreA < scoreB:
+          keepA = False
+          new_keep.append(boxObjB)
+
+      if keepA:
+        new_keep.append(boxObjA)
+
+      keep = new_keep[:]
+    return keep
+
+  @classmethod
+  def filter_by_iou(cls, detected_objs, iou_thold=0.81, iou_per_label=False):
+    objs_to_filter = detected_objs if iou_per_label else cls.remove_duplicate_by_score(detected_objs)
+    by_label = {}
+    for obj in objs_to_filter:
+      obj_label = obj["label"] if iou_per_label else "all"
+      by_label[obj_label] = by_label.get(obj_label, []) + [obj]
+
+    ioud_by_label = {}
+    for k, all_boxes in by_label.items():
+      keep = all_boxes[:1]
+      for boxObjA in all_boxes[1:]:
+        new_keep = []
+        boxA = boxObjA["box"]
+        keepA = True
+        for boxObjB in keep:
+          boxB = boxObjB["box"]
+          iouAB, _, areaA, areaB = cls.iou(boxA, boxB, return_areas=True)
+
+          if iouAB < iou_thold:
+            new_keep.append(boxObjB)
+          elif areaA < areaB:
+            keepA = False
+            new_keep.append(boxObjB)
+
+        if keepA:
+          new_keep.append(boxObjA)
+
+        keep = new_keep[:]
+      ioud_by_label[k] = keep
+
+    return [obj for objs in ioud_by_label.values() for obj in objs]
+
+
   def __init__(self, model=None):
     model_name = Owlv2.MODEL_NAME if model is None else model
     self.processor = Owlv2Processor.from_pretrained(model_name)
@@ -64,47 +123,19 @@ class Owlv2:
     slbs = zip(res[0]["scores"], res[0]["labels"], res[0]["boxes"])
     iw, ih = img.size
 
-    detected_objs = [{"score": s.item(), "label": labels[l.item()], "box": Owlv2.px_to_pct(b, iw, ih)}
+    detected_objs = [{"score": round(s.item(), 3), "label": labels[l.item()], "box": Owlv2.px_to_pct(b, iw, ih)}
                      for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih)]
     return detected_objs
 
   def top_objects(self, img, labels, tholds):
     detected_objs = self.run_object_detection(img, labels, tholds)
     by_label_score = sorted(detected_objs, key=lambda x: (x["label"], x["score"]))
-    unique_label = {o["label"]: o["box"] for o in by_label_score}
-    return [{"box": v, "label": k} for k,v in unique_label.items()]
+    unique_label = {o["label"]: o for o in by_label_score}
+    return list(unique_label.values())
 
   def all_objects(self, img, labels, tholds):
     detected_objs = self.run_object_detection(img, labels, tholds)
-    return [{k: o[k] for k in ["box", "label"]} for o in detected_objs]
-
-  def iou_objects(self, img, labels, tholds, iou_thold=0.8):
-    detected_objs = self.run_object_detection(img, labels, tholds)
-
-    by_label = {}
-    for obj in detected_objs:
-      by_label[obj["label"]] = by_label.get(obj["label"], []) + [obj["box"]]
-
-    ioud_by_label = {}
-    for k, all_boxes in by_label.items():
-      keep = all_boxes[:1]
-      for boxA in all_boxes[1:]:
-        new_keep = []
-        keepA = True
-        for boxB in keep:
-          iouAB, _, areaA, areaB = self.iou(boxA, boxB, return_areas=True)
-          if iouAB < iou_thold:
-            new_keep.append(boxB)
-          elif areaA < areaB:
-            keepA = False
-            new_keep.append(boxB)
-        if keepA:
-          new_keep.append(boxA)
-
-        keep = new_keep[:]
-      ioud_by_label[k] = keep
-
-    return [{"box": b, "label": k} for k,v in ioud_by_label.items() for b in v]
+    return detected_objs
 
   def get_objectness_boxes(self, img, topk=8):
     tsize = [img.size[::-1]]

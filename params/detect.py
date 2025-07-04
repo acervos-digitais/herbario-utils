@@ -1,15 +1,11 @@
 OBJECTS_FAUNA = {
-  "person": 0.2,
-  "people": 0.2,
-  "human": 0.2,
-  "animal": 0.8,
-  "cat": 0.8,
-  "dog": 0.8,
-  "bird": 0.8,
-  "horse": 0.8,
-  "cow": 0.8,
-  "bull": 0.8,
-  "ox": 0.8,
+  "cat": 0.25,
+  "dog": 0.25,
+  "bird": 0.25,
+  "horse": 0.25,
+  "cow": 0.25,
+  "bull": 0.25,
+  "ox": 0.25,
 }
 
 OBJECTS_FLORA = {
@@ -24,7 +20,8 @@ OBJECTS_FLORA = {
 
 OBJECTS_TREES = {
   "palm tree": 0.15,
-  "coniferous tree": 0.15,
+  "conifer": 0.2,
+  "fruit": 0.15,
 }
 
 OBJECTS_NATURE = {
@@ -36,6 +33,7 @@ OBJECTS_NATURE = {
 }
 
 OBJECTS = [
+  OBJECTS_FAUNA,
   OBJECTS_FLORA,
   OBJECTS_TREES
 ]
@@ -47,9 +45,6 @@ OBJECT2LABEL = {
   "bush": "vegetation",
   "flower": "vegetation",
   "greenery": "vegetation",
-
-  "people": "person",
-  "human": "person",
 
   "cat": "animal",
   "dog": "animal",

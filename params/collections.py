@@ -8,7 +8,7 @@ MUSEUMS = {
     "objects": ["painting", "drawing"]
   },
   "masp": {
-    "label": "Museu de Arte de São Paulo",
+    "label": "MASP",
     "dir": "MASP",
     "file": "masp",
     "type": "wikidata",
