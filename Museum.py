@@ -197,7 +197,7 @@ class Museum:
         obj_boxes = cls.owl.all_objects(image, labels, tholds)
         image_boxes += obj_boxes
 
-      image_boxes_iou = Owlv2.filter_by_iou(image_boxes)
+      image_boxes_iou = Owlv2.filter_by_iou(image_boxes, iou_thold=0.85)
 
       object_data = { qid: { "objects": image_boxes_iou}}
 
