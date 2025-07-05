@@ -1,11 +1,11 @@
 OBJECTS_FAUNA = {
-  "cat": 0.25,
+  "cat": 0.3,
   "dog": 0.25,
   "bird": 0.25,
   "horse": 0.25,
-  "cow": 0.25,
-  "bull": 0.25,
-  "ox": 0.25,
+  "cow": 0.3,
+  "bull": 0.3,
+  "ox": 0.3,
 }
 
 OBJECTS_FLORA = {
