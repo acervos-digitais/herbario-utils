@@ -56,10 +56,13 @@ class Wikidata:
     "pinacoteca_sp": "Q2095209",
     "museu_historico": "Q510993",
     "hercules_florence": "Q64759283",
+    "itau_brasiliana": "Q10304263",
+    "belas_artes": "Q1954370",
     "museu_paulista collection": "Q56677470",
     "pinacoteca_sp collection": "Q59247460",
     "museu_historico collection": "Q62091616",
     "hercules_florence collection": "Q107003876",
+    "itau_brasiliana collection": "Q57334750",
   }
 
   @classmethod
@@ -67,10 +70,11 @@ class Wikidata:
     # https://w.wiki/DtAY
     # https://w.wiki/DtAh
     # https://w.wiki/EWda
+    # https://w.wiki/EeYR
     i2l = "P195" if "collection" in location else "P276"
 
     return f"""
-      SELECT DISTINCT ?item ?label_en ?label_pt ?qid ?image ?creatorLabel ?date ?article WHERE {{
+      SELECT DISTINCT ?item ?label_pt ?qid ?image ?creatorLabel ?date ?article WHERE {{
       SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
       ?item wdt:{i2l} wd:{cls.QCODES[location]}.
       ?item wdt:P18 ?image.
@@ -79,12 +83,12 @@ class Wikidata:
 
       BIND(STRAFTER(STR(?item), STR(wd:)) AS ?qid).
 
-      ?item rdfs:label ?label_en FILTER (lang(?label_en) = "en")
       ?item rdfs:label ?label_pt FILTER (lang(?label_pt) = "pt")
 
       OPTIONAL {{ ?item wdt:P170 ?creator. }}
       OPTIONAL {{ ?item wdt:P571 ?date. }}
-      OPTIONAL {{ ?article schema:about ?item. }}
+      OPTIONAL {{ ?article schema:about ?item.
+                  FILTER (SUBSTR(str(?article), 1, 25) = "https://pt.wikipedia.org/") }}
     }}
     """
 

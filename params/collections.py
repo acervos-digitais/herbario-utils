@@ -39,6 +39,22 @@ MUSEUMS = {
     "collection": True,
     "objects": ["watercolor painting", "illustration"]
   },
+  "belas_artes": {
+    "label": "Museu Nacional de Belas Artes",
+    "dir": "BelasArtes",
+    "file": "belas_artes",
+    "type": "wikidata",
+    "collection": False,
+    "objects": ["painting", "drawing"]
+  },
+  "itau_brasiliana": {
+    "label": "Coleção Brasiliana Itaú",
+    "dir": "ItauBrasiliana",
+    "file": "itau_brasiliana",
+    "type": "wikidata",
+    "collection": True,
+    "objects": ["painting", "drawing"]
+  },
   "brasiliana": {
     "label": "Brasiliana",
     "dir": "Brasiliana",
