@@ -39,13 +39,13 @@ class Museum:
   def read_data(cls):
     museum_data = {}
     if (path.isfile(cls.INFO_PATH)):
-      with open(cls.INFO_PATH, "r") as ifp:
+      with open(cls.INFO_PATH, "r", encoding="utf-8") as ifp:
         museum_data = json.load(ifp)
     return museum_data
 
   @classmethod
   def write_data(cls, museum_data):
-    with open(cls.INFO_PATH, "w") as ofp:
+    with open(cls.INFO_PATH, "w", encoding="utf-8") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
   @classmethod
@@ -153,7 +153,7 @@ class Museum:
 
       embedding_data = { qid: {} }
       if path.isfile(embedding_path):
-        with open(embedding_path, "r") as ifp:
+        with open(embedding_path, "r", encoding="utf-8") as ifp:
           embedding_data = json.load(ifp)
 
       if model in embedding_data[qid]:
@@ -228,7 +228,7 @@ class Museum:
 
       cap_data = { qid: {} }
       if path.isfile(caption_path):
-        with open(caption_path, "r") as ifp:
+        with open(caption_path, "r", encoding="utf-8") as ifp:
           cap_data = json.load(ifp)
 
       if model in cap_data[qid]:
@@ -271,32 +271,32 @@ class Museum:
         continue
 
       for d in ["colors", "objects"]:
-        with open(path.join(cls.DIRS[d], f"{qid}.json"), "r") as ifp:
+        with open(path.join(cls.DIRS[d], f"{qid}.json"), "r", encoding="utf-8") as ifp:
           data = json.load(ifp)
           museum_data[qid] |= data[qid]
 
-      with open(path.join(cls.DIRS["captions"], f"{qid}.json"), "r") as ifp:
+      with open(path.join(cls.DIRS["captions"], f"{qid}.json"), "r", encoding="utf-8") as ifp:
         data = json.load(ifp)
         museum_data[qid]["captions"] = data[qid]
 
-      with open(path.join(cls.DIRS["embeddings"], f"{qid}.json"), "r") as ifp:
+      with open(path.join(cls.DIRS["embeddings"], f"{qid}.json"), "r", encoding="utf-8") as ifp:
         data = json.load(ifp)
         embed_data[qid] = data[qid]
 
     processed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_processed.json")
     embed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_embeddings.json")
 
-    with open(processed_path, "w") as ofp:
+    with open(processed_path, "w", encoding="utf-8") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
-    with open(embed_path, "w") as ofp:
+    with open(embed_path, "w", encoding="utf-8") as ofp:
       json.dump(embed_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
     # for k in museum_data.keys():
     #   museum_data[k]["embeddings"] = embed_data[k]
 
     # full_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_full.json")
-    # with open(full_data_path, "w") as ofp:
+    # with open(full_data_path, "w", encoding="utf-8") as ofp:
     #   json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
   @classmethod
@@ -310,7 +310,7 @@ class Museum:
       for name,info in all_museums.items():
         Museum.prep_dirs(info)
 
-        with open(Museum.INFO_PATH.replace("_metadata.json", f"_{out_type}.json"), "r") as ifp:
+        with open(Museum.INFO_PATH.replace("_metadata.json", f"_{out_type}.json"), "r", encoding="utf-8") as ifp:
           museum_data = json.load(ifp)
 
         print("reading:", name, len(museum_data))
@@ -322,7 +322,7 @@ class Museum:
 
       print("writing", len(all_data))
 
-      with open(output_file_path, "w") as ofp:
+      with open(output_file_path, "w", encoding="utf-8") as ofp:
         json.dump(all_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
 
@@ -335,7 +335,7 @@ class Museum:
     obj_files = sorted([f for f in listdir(cls.DIRS["objects"]) if f.endswith(".json")])
     for fname in obj_files:
       qid = fname.replace(".json", "")
-      with open(path.join(cls.DIRS["objects"], fname), "r") as inp:
+      with open(path.join(cls.DIRS["objects"], fname), "r", encoding="utf-8") as inp:
         iboxes = json.load(inp)[qid]["objects"]
 
       if len(iboxes) < 1:
@@ -486,7 +486,7 @@ class MacUspMuseum(Museum):
     Museum.get_metadata(museum_info)
     museum_data = cls.read_data()
 
-    with open(museum_info["path"], "r") as file:
+    with open(museum_info["path"], "r", encoding="utf-8") as file:
       reader = csv.DictReader(file)
 
       for row in reader:
