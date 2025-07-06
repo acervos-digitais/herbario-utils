@@ -126,7 +126,7 @@ class Museum:
         json.dump(color_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
-  def get_embeddings(cls, museum_info, model="clip"):
+  def get_embeddings(cls, museum_info, model="siglip2"):
     cls.prep_dirs(museum_info)
     makedirs(cls.DIRS["embeddings"], exist_ok=True)
 
@@ -159,7 +159,7 @@ class Museum:
       if model in embedding_data[qid]:
         continue
 
-      img = PImage.open(img_path)
+      img = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
       img_embedding = [round(v, 8) for v in cls.model.get_embedding(img).tolist()]
 
       embedding_data[qid][model] = img_embedding
@@ -194,12 +194,9 @@ class Museum:
 
       image_boxes = []
       for labels,tholds in zip(OBJS_LABELS, OBJS_THOLDS):
-        obj_boxes = cls.owl.all_objects(image, labels, tholds)
-        image_boxes += obj_boxes
+        image_boxes += cls.owl.iou_objects(image, labels, tholds)
 
-      image_boxes_iou = Owlv2.filter_by_iou(image_boxes, iou_thold=0.85)
-
-      object_data = { qid: { "objects": image_boxes_iou}}
+      object_data = { qid: { "objects": image_boxes}}
 
       with open(object_path, "w", encoding="utf-8") as of:
         json.dump(object_data, of, sort_keys=True, separators=(",",":"), ensure_ascii=False)

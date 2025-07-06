@@ -76,7 +76,7 @@ class Owlv2:
     return keep
 
   @classmethod
-  def filter_by_iou(cls, detected_objs, iou_thold=0.81, iou_per_label=False):
+  def filter_by_iou(cls, detected_objs, iou_thold=0.8, iou_per_label=False):
     objs_to_filter = detected_objs if iou_per_label else cls.remove_duplicate_by_score(detected_objs)
     by_label = {}
     for obj in objs_to_filter:
@@ -136,6 +136,11 @@ class Owlv2:
   def all_objects(self, img, labels, tholds):
     detected_objs = self.run_object_detection(img, labels, tholds)
     return detected_objs
+
+  def iou_objects(self, img, labels, tholds):
+    detected_objs = self.run_object_detection(img, labels, tholds)
+    ioud_objs = self.filter_by_iou(detected_objs, iou_thold=0.8)
+    return ioud_objs
 
   def get_objectness_boxes(self, img, topk=8):
     tsize = [img.size[::-1]]
