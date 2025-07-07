@@ -300,25 +300,30 @@ class Museum:
     #   json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
   @classmethod
+  def combine_all_data(cls, all_museums, data_type):
+    all_data = {}
+
+    for name,info in all_museums.items():
+      Museum.prep_dirs(info)
+
+      with open(Museum.INFO_PATH.replace("_metadata.json", f"_{data_type}.json"), "r", encoding="utf-8") as ifp:
+        museum_data = json.load(ifp)
+
+      print("reading:", name, len(museum_data))
+
+      repeat_keys = [k for k in museum_data.keys() if k in all_data]
+      print("repeat keys:", repeat_keys)
+
+      all_data |= museum_data
+    return all_data
+
+  @classmethod
   def combine_museums(cls, all_museums, out_dir, out_prefix, data_dirs):
     out_file_template = path.join(out_dir, out_prefix + "_XTYPEX.json")
 
     for out_type in data_dirs:
       output_file_path = out_file_template.replace("XTYPEX", out_type)
-      all_data = {}
-
-      for name,info in all_museums.items():
-        Museum.prep_dirs(info)
-
-        with open(Museum.INFO_PATH.replace("_metadata.json", f"_{out_type}.json"), "r", encoding="utf-8") as ifp:
-          museum_data = json.load(ifp)
-
-        print("reading:", name, len(museum_data))
-
-        repeat_keys = [k for k in museum_data.keys() if k in all_data]
-        print("repeat keys:", repeat_keys)
-
-        all_data |= museum_data
+      all_data = cls.combine_all_data(all_museums, out_type)
 
       print("writing", len(all_data))
 

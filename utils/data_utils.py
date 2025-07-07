@@ -29,7 +29,7 @@ ADD_WORDS = {
 }
 
 def get_caption_words(data_path, model="gemma3", lang="en", categories=["all"], return_counts=False):
-  with open(data_path, "r") as ifp:
+  with open(data_path, "r", encoding="utf-8") as ifp:
     obj_data = json.load(ifp)
 
   all_words = {}
@@ -57,7 +57,7 @@ def export_preload_data(data_prefix, fields, out_file_name="preload.json"):
   input_file_path = f"./metadata/json/{data_prefix}_processed.json"
   output_file_path = f"./metadata/json/{data_prefix}_{out_file_name}"
 
-  with open(input_file_path, "r") as ifp:
+  with open(input_file_path, "r", encoding="utf-8") as ifp:
     obj_data = json.load(ifp)
 
   preload_data = { f: {} for f in fields }
@@ -79,22 +79,19 @@ def export_preload_data(data_prefix, fields, out_file_name="preload.json"):
     if k[-1] != "s":
       preload_data[k+"s"] = preload_data.pop(k)
 
-  with open(output_file_path, "w") as ofp:
+  with open(output_file_path, "w", encoding="utf-8") as ofp:
     json.dump(preload_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
 
 class Clusterer:
-  def __init__(self, data_prefix, images_dir_path):
+  def __init__(self, embedding_data, data_prefix, images_dir_path):
     self.data_prefix = data_prefix
     self.images_dir_path = images_dir_path
     self.data_file_path = f"./metadata/json/{data_prefix}_processed.json"
-    self.embedding_file_path = f"./metadata/json/{data_prefix}_embeddings.json"
     self.llama = None
     self.siglip = None
 
-    with open(self.embedding_file_path, "r") as ifp:
-      self.embedding_data = json.load(ifp)
-
+    self.embedding_data = embedding_data
     self.cluster_data = {}
 
   def export_clusters(self, out_file_name, embedding_model="siglip2", min_nc=4, max_nc=17, step_nc=2, describe="all", **describe_params):
@@ -126,7 +123,7 @@ class Clusterer:
       }
 
     out_file_path = f"./metadata/json/{self.data_prefix}_{out_file_name}"
-    with open(out_file_path, "w") as ofp:
+    with open(out_file_path, "w", encoding="utf-8") as ofp:
       json.dump(self.cluster_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
 
