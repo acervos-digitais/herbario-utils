@@ -97,7 +97,7 @@ class Clusterer:
 
     self.cluster_data = {}
 
-  def export_clusters(self, out_file_name, embedding_model="siglip2", min_nc=2, max_nc=17, step_nc=2, describe="all", **describe_params):
+  def export_clusters(self, out_file_name, embedding_model="siglip2", min_nc=4, max_nc=17, step_nc=2, describe="all", **describe_params):
     ids = np.array(list(self.embedding_data.keys()))
     embeddings = np.array([v[embedding_model] for v in self.embedding_data.values()])
 
@@ -130,7 +130,7 @@ class Clusterer:
       json.dump(self.cluster_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
 
-  def describe_by_vlm(self, ids_by_distance, top_images=10, num_images=10):
+  def describe_by_vlm(self, ids_by_distance, top_images=50, num_images=10):
     if self.llama == None:
       self.llama = LlamaVision()
 
@@ -142,9 +142,9 @@ class Clusterer:
 
     for cluster_ids in ids_to_describe:
       img_paths = [path.join(self.images_dir_path, f"{id}.jpg") for id in cluster_ids]
+      cluster_description = self.llama.common(img_paths)
       for lang in descriptions.keys():
-        words = self.llama.common(img_paths, lang=lang)
-        descriptions[lang].append(words)
+        descriptions[lang].append(cluster_description[lang])
 
     return descriptions
 

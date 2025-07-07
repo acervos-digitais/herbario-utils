@@ -19,12 +19,11 @@ class CommonNouns(BaseModel):
   generic_nouns: conlist(str, min_length=2, max_length=4)
   specific_nouns: conlist(str, min_length=2, max_length=4)
 
-class LlamaVision:
-  LANGS = {
-    "en": "english",
-    "pt": "portuguese"
-  }
+class CommonDescriptions(BaseModel):
+  en: CommonNouns
+  pt: CommonNouns
 
+class LlamaVision:
   def __init__(self, url="http://127.0.0.1:11434"):
     self.client = Client(host=url)
 
@@ -90,18 +89,18 @@ class LlamaVision:
 
     return res_obj_ne
 
-  def common(self, img_paths, lang="en"):
+  def common(self, img_paths):
     imgs = LlamaVision.tob64(img_paths)
-    language = LlamaVision.LANGS.get(lang, "english")
 
     response = self.client.chat(
       model="gemma3:4b",
-      format=CommonNouns.model_json_schema(),
+      format=CommonDescriptions.model_json_schema(),
       options={"temperature": 0},
       messages=[{
         "role": "user",
         # "content": f"Using few words, what do these paintings have in common? Give a generic description about the style of the paintings using 2 or 3 words and a more specific description about the content of the painting using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
-        "content": f"Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
+        # "content": f"Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
+        "content": f"Give separate descriptions in portuguese and english. Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give separate descriptions in portuguese and english.",
         "images": imgs,
       }]
     )
@@ -109,8 +108,8 @@ class LlamaVision:
     # get object
     res_obj = json.loads(response["message"]["content"])
 
-    # turn into list of unique words
-    first_words = [set([w.split(" ")[0].lower() for w in v]) for v in res_obj.values()]
-    common_set = set()
-    common_set = common_set.union(*first_words)
-    return list(common_set)
+    # combine generic and specific descriptions
+    for lang,groups in res_obj.items():
+      res_obj[lang] = [d.lower() for descriptions in groups.values() for d in descriptions]
+
+    return res_obj
