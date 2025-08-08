@@ -30,7 +30,7 @@ class Museum:
       cls.DIRS[d] = path.join(cls.DIRS["data"], d)
 
     cls.IMGS = {}
-    for d in ["500", "900", "full"]:
+    for d in ["100", "500", "900", "full"]:
       cls.IMGS[d] = path.join(cls.DIRS["imgs"], d)
 
     cls.INFO_PATH = path.join(cls.DIRS["data"], museum_info["file"] + "_metadata.json")
@@ -72,10 +72,11 @@ class Museum:
       img_path_full = path.join(cls.IMGS["full"], f"{qid}.jpg")
       img_path_900 = path.join(cls.IMGS["900"], f"{qid}.jpg")
       img_path_500 = path.join(cls.IMGS["500"], f"{qid}.jpg")
+      img_path_100 = path.join(cls.IMGS["100"], f"{qid}.jpg")
 
       img_url = museum_data[qid]["image"]
 
-      if (not path.isfile(img_path_full)) or (not path.isfile(img_path_900)) or (not path.isfile(img_path_500)):
+      if (not path.isfile(img_path_full)) or (not path.isfile(img_path_900)) or (not path.isfile(img_path_500)) or (not path.isfile(img_path_100)):
         try:
           pimg = cls.download_image(img_url)
         except Exception as e:
@@ -95,6 +96,10 @@ class Museum:
       if (not path.isfile(img_path_500)):
         pimg.thumbnail([500, 500])
         pimg.save(img_path_500)
+
+      if (not path.isfile(img_path_100)):
+        pimg.thumbnail([100, 100])
+        pimg.save(img_path_100)
 
   @classmethod
   def get_colors(cls, museum_info):
@@ -292,13 +297,6 @@ class Museum:
     with open(embed_path, "w", encoding="utf-8") as ofp:
       json.dump(embed_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
-    # for k in museum_data.keys():
-    #   museum_data[k]["embeddings"] = embed_data[k]
-
-    # full_data_path = path.join(cls.DIRS["data"], museum_info["file"] + "_full.json")
-    # with open(full_data_path, "w", encoding="utf-8") as ofp:
-    #   json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
-
   @classmethod
   def combine_all_data(cls, all_museums, data_type):
     all_data = {}
@@ -318,12 +316,29 @@ class Museum:
     return all_data
 
   @classmethod
-  def combine_museums(cls, all_museums, out_dir, out_prefix, data_dirs):
+  def graft_data(cls, all_data, extra_data):
+    for id in all_data.keys():
+      if id not in extra_data:
+        print(id, "not in extra data")
+        continue
+
+      for k,v in extra_data[id].items():
+        if k in all_data[id]:
+          print(k, "already in", id)
+        else:
+          all_data[id][k] = v
+    return all_data
+
+  @classmethod
+  def combine_museums(cls, all_museums, out_dir, out_prefix, data_dirs, extra_data=None):
     out_file_template = path.join(out_dir, out_prefix + "_XTYPEX.json")
 
     for out_type in data_dirs:
       output_file_path = out_file_template.replace("XTYPEX", out_type)
       all_data = cls.combine_all_data(all_museums, out_type)
+
+      if extra_data != None and out_type in extra_data:
+        all_data = cls.graft_data(all_data, extra_data[out_type])
 
       print("writing", len(all_data))
 

@@ -137,3 +137,35 @@ class Clusterer:
       descriptions["pt"].append(img_tags_pt[words_offset : max_words + words_offset])
 
     return descriptions
+
+
+def get_tsne_embeddings(embedding_data, with_3d=False):
+  ids = embedding_data.keys()
+  raw_embs = []
+
+  for id in ids:
+    raw_embs.append(embedding_data[id]["siglip2"])
+
+  tsne2_vals, _, _ = tsne_kmeans(raw_embs, n_clusters=8, n_components=2)
+  tsne2_min = tsne2_vals.min(axis=0)
+  tsne2_max = tsne2_vals.max(axis=0)
+  tsne2_norm = (tsne2_vals - tsne2_min) / (tsne2_max - tsne2_min)
+
+  tsne3_norm = tsne2_norm
+  if with_3d:
+    tsne3_vals, _, _ = tsne_kmeans(raw_embs, n_clusters=8, n_components=3)
+    tsne3_min = tsne3_vals.min(axis=0)
+    tsne3_max = tsne3_vals.max(axis=0)
+    tsne3_norm = (tsne3_vals - tsne3_min) / (tsne3_max - tsne3_min)
+
+  tsne_embs = {}
+  for id,t2d,t3d in zip(ids, tsne2_norm, tsne3_norm):
+    tsne_embs[id] = {
+      "embeddings": {
+        "tsne2d": [round(float(e), 4) for e in t2d]
+      }
+    }
+    if with_3d:
+      tsne_embs[id]["embeddings"]["tsne3d"] = [round(float(e), 4) for e in t3d]
+
+  return tsne_embs
