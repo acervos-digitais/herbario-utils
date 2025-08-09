@@ -74,7 +74,7 @@ class Museum:
       img_path_500 = path.join(cls.IMGS["500"], f"{qid}.jpg")
       img_path_100 = path.join(cls.IMGS["100"], f"{qid}.jpg")
 
-      img_url = museum_data[qid]["image"]
+      img_url = museum_data[qid]["image"]["url"]
 
       if (not path.isfile(img_path_full)) or (not path.isfile(img_path_900)) or (not path.isfile(img_path_500)) or (not path.isfile(img_path_100)):
         try:
@@ -426,7 +426,9 @@ class WikidataMuseum(Museum):
             "title": result["label_pt"]["value"],
             "date": result.get("date", defval)["value"],
             "creator": result.get("creatorLabel", defval)["value"],
-            "image": result["image"]["value"],
+            "image": {
+              "url": result["image"]["value"],
+            },
             "museum": museum_info["label"],
             "url": result.get("article", defurlval)["value"],
           }
@@ -481,7 +483,9 @@ class BrasilianaMuseum(Museum):
           "id": result["id"],
           "categories": [category],
           "depicts": depicts,
-          "image": result["document"]["value"],
+          "image": {
+            "url": result["document"]["value"],
+          },
           "url": result["url"]
         }
 
@@ -530,7 +534,9 @@ class MacUspMuseum(Museum):
           "title": row["title"],
           "date": str(row["date"]).replace(";", ""),
           "creator": row["artist"],
-          "image": row["image"],
+          "image": {
+            "url": row["image"],
+          },
           "museum": museum_info["label"],
           "url": row["url"],
         }

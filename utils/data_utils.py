@@ -1,8 +1,9 @@
 import json
 
 import numpy as np
+import PIL.Image as PImage
 
-from os import path
+from os import listdir, path
 from sklearn.metrics.pairwise import euclidean_distances
 
 from .cluster_utils import tsne_kmeans
@@ -169,3 +170,17 @@ def get_tsne_embeddings(embedding_data, with_3d=False):
       tsne_embs[id]["embeddings"]["tsne3d"] = [round(float(e), 4) for e in t3d]
 
   return tsne_embs
+
+# ratioH returs h/w, useful for calculating heights
+def get_image_ratios(ratioH = True):
+  IMG_PATH = "../../imgs/arts/100"
+  fnames = sorted([f for f in listdir(IMG_PATH) if f.endswith("jpg")])
+
+  ratio_data = {}
+  for f in fnames:
+    id = f.replace(".jpg", "")
+    img = PImage.open(path.join(IMG_PATH, f))
+    iw,ih = img.size
+    ratio_data[id] = round(ih/iw, 4) if ratioH else round(iw/ih, 4)
+
+  return ratio_data
