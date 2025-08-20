@@ -172,14 +172,13 @@ def get_tsne_embeddings(embedding_data, with_3d=False):
   return tsne_embs
 
 # ratioH returs h/w, useful for calculating heights
-def get_image_ratios(ratioH = True):
-  IMG_PATH = "../../imgs/arts/100"
-  fnames = sorted([f for f in listdir(IMG_PATH) if f.endswith("jpg")])
+def get_image_ratios(img_path, ratioH = True):
+  fnames = sorted([f for f in listdir(img_path) if f.endswith("jpg")])
 
   ratio_data = {}
   for f in fnames:
     id = f.replace(".jpg", "")
-    img = PImage.open(path.join(IMG_PATH, f))
+    img = PImage.open(path.join(img_path, f))
     iw,ih = img.size
     ratio_data[id] = round(ih/iw, 4) if ratioH else round(iw/ih, 4)
 

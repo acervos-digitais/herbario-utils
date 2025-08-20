@@ -3,12 +3,12 @@ OBJECTS_FAUNA = {
   "dog": 0.25,
   "horse": 0.25,
   "ox": 0.25,
+  "painting of human": 0.20,
 }
 
 OBJECTS_FLORA = {
   "bush": 0.15,
-  "crops": 0.15,
-  "flower": 0.125,
+  "flower": 0.12,
   "fruit": 0.15,
   "grass": 0.15,
   "greenery": 0.15,
@@ -18,14 +18,24 @@ OBJECTS_FLORA = {
 }
 
 OBJECTS_TREES = {
-  "conifer": 0.205,
+  "conifer": 0.21,
   "palm tree": 0.15,
+}
+
+OBJECTS_PEOPLE = {
+  "human face": 0.15,
+  "human hand": 0.15,
+  "naked human back": 0.20,
+  "naked human breast": 0.20,
+  "naked human buttocks": 0.20,
+  "naked human torso": 0.20,
 }
 
 OBJECTS = [
   OBJECTS_FAUNA,
   OBJECTS_FLORA,
-  OBJECTS_TREES
+  OBJECTS_TREES,
+  OBJECTS_PEOPLE,
 ]
 
 OBJECT2LABEL = {
@@ -34,7 +44,6 @@ OBJECT2LABEL = {
   "fruit": "flora",
   "grass": "flora",
   "greenery": "flora",
-  "plantation": "flora",
   "shrub": "flora",
   "tree": "flora",
   "vegetation": "flora",
@@ -46,6 +55,14 @@ OBJECT2LABEL = {
   "dog": "fauna",
   "horse": "fauna",
   "ox": "fauna",
+  "painting of human": "person",
+
+  "human face": "face",
+  "human hand": "hand",
+  "naked human back": "back",
+  "naked human breast": "breast",
+  "naked human buttocks": "butt",
+  "naked human torso": "torso",
 }
 
 OBJS_LABELS_IN = [sorted(o.keys()) for o in OBJECTS]

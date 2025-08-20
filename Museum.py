@@ -79,6 +79,8 @@ class Museum:
       if (not path.isfile(img_path_full)) or (not path.isfile(img_path_900)) or (not path.isfile(img_path_500)) or (not path.isfile(img_path_100)):
         try:
           pimg = cls.download_image(img_url)
+          iw,ih = pimg.size
+          museum_data[qid]["image"]["ratio"] = round(ih/iw, 4)
         except Exception as e:
           print("\t", qid)
           print("\t", img_url)
@@ -100,6 +102,8 @@ class Museum:
       if (not path.isfile(img_path_100)):
         pimg.thumbnail([100, 100])
         pimg.save(img_path_100)
+
+    cls.write_data(museum_data)
 
   @classmethod
   def get_colors(cls, museum_info):
