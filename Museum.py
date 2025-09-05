@@ -436,7 +436,7 @@ class WikidataMuseum(Museum):
             "museum": museum_info["label"],
             "url": result.get("article", defurlval)["value"],
           }
-          museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))
+          museum_data[id]["year"] = get_year(str(museum_data[id]["date"]), museum_data[id]["title"])
 
     cls.write_data(museum_data)
 
@@ -497,7 +497,7 @@ class BrasilianaMuseum(Museum):
           item_data[k] = result["data"][v]["value"].replace("&#034;", "")
 
         museum_data[id] = museum_data.get(id, {}) | item_data
-        museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))
+        museum_data[id]["year"] = get_year(str(museum_data[id]["date"]), museum_data[id]["title"])
 
     cls.write_data(museum_data)
 
@@ -544,6 +544,6 @@ class MacUspMuseum(Museum):
           "museum": museum_info["label"],
           "url": row["url"],
         }
-        museum_data[id]["year"] = get_year(str(museum_data[id]["date"]))
+        museum_data[id]["year"] = get_year(str(museum_data[id]["date"]), museum_data[id]["title"])
 
     cls.write_data(museum_data)
