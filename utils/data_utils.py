@@ -54,6 +54,75 @@ def get_caption_words(data_path, model="gemma3", lang="en", categories=["all"], 
     return [w for w,_ in words]
 
 
+def get_depicts_words(data_path, lang="en", return_counts=False):
+  with open(data_path, "r", encoding="utf-8") as ifp:
+    obj_data = json.load(ifp)
+
+  all_words = {}
+  for obj in obj_data.values():
+    for raw_word in obj["depicts"][lang]:
+      word = raw_word.lower()
+      if word not in STOP_WORDS[lang]:
+        all_words[word] = all_words.get(word, 0) + 1
+
+  word_cnts = [[w, c] for w,c in all_words.items()]
+  words = sorted(word_cnts, key=lambda x:x[1], reverse=True)
+
+  if return_counts:
+    return words
+  else:
+    return [w for w,_ in words]
+
+def get_description_words(data_path, lang="en", list_length=500):
+  split_idx = int(0.9 * list_length)
+  cwords = get_caption_words(data_path, lang=lang)[:split_idx]
+  dwords = get_depicts_words(data_path, lang=lang)[:(list_length - split_idx)]
+  return list(set(cwords).union(set(dwords)))
+
+
+class Describer:
+  def boxpct2pix(box, dim):
+    (x0,y0,x1,y1), (w,h) = box, dim
+    return (
+      max(0, min(int(x0 * w), w)),
+      max(0, min(int(y0 * h), h)),
+      max(0, min(int(x1 * w), w)),
+      max(0, min(int(y1 * h), h)),
+    )
+
+  def __init__(self, data_prefix, images_dir_path, word_list_limit=500):
+    self.images_dir_path = images_dir_path
+    self.siglip = SigLip2()
+
+    data_file_path = f"./metadata/json/{data_prefix}_processed.json"
+    self.words = {
+      "en": get_description_words(data_file_path, lang="en", list_length=word_list_limit),
+      "pt": get_description_words(data_file_path, lang="pt", list_length=word_list_limit),
+    }
+
+  def get_crop_img(self, boxKey):
+    (id,x0,y0,x1,y1) = boxKey
+    img = PImage.open(path.join(self.images_dir_path, f"{id}.jpg")).convert("RGB")
+    iw,ih = img.size
+    src_x0, src_y0, src_x1, src_y1 = Describer.boxpct2pix((x0,y0,x1,y1), (iw,ih))
+    cimg = img.crop((src_x0, src_y0, src_x1, src_y1))
+    cimg.thumbnail((256, 256))
+    return cimg
+
+  def describe(self, boxKeys_by_score, num_images=16, words_offset=0, max_words=8):
+    img_embeddings = np.array([self.siglip.get_embedding(self.get_crop_img(boxKey)) for boxKey in boxKeys_by_score[:num_images]])
+    embeddings_avg = img_embeddings.mean(axis=0)
+
+    descriptions = {}
+
+    img_tags_en = self.siglip.zero_shot(embeddings_avg, self.words["en"])
+    img_tags_pt = self.siglip.zero_shot(embeddings_avg, self.words["pt"], prefix="pintura mostrando")
+    descriptions["en"] = img_tags_en[words_offset : max_words + words_offset]
+    descriptions["pt"] = img_tags_pt[words_offset : max_words + words_offset]
+
+    return descriptions
+
+
 class Clusterer:
   def __init__(self, embedding_data, data_prefix, images_dir_path):
     self.data_prefix = data_prefix
@@ -81,11 +150,11 @@ class Clusterer:
       if describe == "gemma3":
         descriptions = {describe: self.describe_by_vlm(ids_by_distance, **describe_params)}
       elif describe == "siglip2":
-        descriptions = {describe: self.describe_by_siglip2(ids_by_distance, **describe_params)}
+        descriptions = {describe: self.describe_by_siglip2(ids_by_distance, **{"words_offset":2 , **describe_params})}
       else:
         descriptions = {
           "gemma3" : self.describe_by_vlm(ids_by_distance),
-          "siglip2": self.describe_by_siglip2(ids_by_distance)
+          "siglip2": self.describe_by_siglip2(ids_by_distance, words_offset=2)
         }
 
       self.cluster_data[nc] = {
@@ -117,7 +186,7 @@ class Clusterer:
     return descriptions
 
 
-  def describe_by_siglip2(self, ids_by_distance, num_images=48, words_offset=2, max_words=8, word_list_limit=500):
+  def describe_by_siglip2(self, ids_by_distance, num_images=48, words_offset=0, max_words=8, word_list_limit=500):
     if self.siglip == None:
       self.siglip = SigLip2()
       self.words = {
