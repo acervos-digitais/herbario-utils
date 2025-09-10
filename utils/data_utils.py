@@ -80,6 +80,27 @@ def get_description_words(data_path, lang="en", list_length=500):
   return list(set(cwords).union(set(dwords)))
 
 
+class Representer:
+  def __init__(self, embedding_data, model="siglip2"):
+    self.ids = np.array(list(embedding_data.keys()))
+    self.embedding_values = [x[model] for x in embedding_data.values()]
+    self.siglip = SigLip2()
+
+  def represent(self, text):
+    text = text.split(" ")
+    idxs = self.siglip.shot_zero(self.embedding_values, text)
+
+    cnts = {}
+    ids = []
+    for wi,word in enumerate(text):
+      wcnt = cnts.get(word, 0)
+      ididx = idxs[wi][wcnt]
+      ids.append(self.ids[ididx])
+      cnts[word] = wcnt + 1
+
+    return ids
+
+
 class Describer:
   def boxpct2pix(box, dim):
     (x0,y0,x1,y1), (w,h) = box, dim

@@ -41,3 +41,14 @@ class SigLip2:
 
     tag_idxs_by_distance = dists[0].argsort()
     return [tags[idx] for idx in tag_idxs_by_distance]
+
+  def shot_zero(self, embeddings, text):
+    text = [text] if type(text) == str else text
+    text = [f" {t}" for t in text]
+    txt_input = self.processor(text=text, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
+
+    with torch.no_grad():
+      txt_embedding = self.model.get_text_features(**txt_input).cpu()
+
+    dists = cosine_distances(txt_embedding, embeddings)
+    return dists.argsort(axis=1)
