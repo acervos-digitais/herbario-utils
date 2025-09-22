@@ -14,6 +14,8 @@ class Brasiliana:
   API_URL = "https://brasiliana.museus.gov.br/wp-json"
   TAINACAN_URL = f"{API_URL}/tainacan/v2/items"
 
+  USER_AGENT = "Acervos-Digitais/0.1 (https://www.acervosdigitais.fau.usp.br/; acervosdigitais@usp.br)"
+
   CATEGORIES = {
     "painting": 1076,
     "drawing": 1069,
@@ -66,7 +68,7 @@ class Brasiliana:
 
   @classmethod
   def download_image(cls, img_url):
-    response = requests.get(img_url)
+    response = requests.get(img_url, headers={"User-Agent": cls.USER_AGENT})
     response.raise_for_status()
     pimg = PImage.open(BytesIO(response.content)).convert("RGB")
     return PImageOps.exif_transpose(pimg)

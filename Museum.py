@@ -280,17 +280,23 @@ class Museum:
         continue
 
       for d in ["colors", "objects"]:
-        with open(path.join(cls.DIRS[d], f"{qid}.json"), "r", encoding="utf-8") as ifp:
+        info_fname = path.join(cls.DIRS[d], f"{qid}.json")
+        if path.isfile(info_fname):
+          with open(info_fname, "r", encoding="utf-8") as ifp:
+            data = json.load(ifp)
+            museum_data[qid] |= data[qid]
+
+      cap_fname = path.join(cls.DIRS["captions"], f"{qid}.json")
+      if path.isfile(cap_fname):
+        with open(cap_fname, "r", encoding="utf-8") as ifp:
           data = json.load(ifp)
-          museum_data[qid] |= data[qid]
+          museum_data[qid]["captions"] = data[qid]
 
-      with open(path.join(cls.DIRS["captions"], f"{qid}.json"), "r", encoding="utf-8") as ifp:
-        data = json.load(ifp)
-        museum_data[qid]["captions"] = data[qid]
-
-      with open(path.join(cls.DIRS["embeddings"], f"{qid}.json"), "r", encoding="utf-8") as ifp:
-        data = json.load(ifp)
-        embed_data[qid] = data[qid]
+      emb_fname = path.join(cls.DIRS["embeddings"], f"{qid}.json")
+      if path.isfile(emb_fname):
+        with open(emb_fname, "r", encoding="utf-8") as ifp:
+          data = json.load(ifp)
+          embed_data[qid] = data[qid]
 
     processed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_processed.json")
     embed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_embeddings.json")
