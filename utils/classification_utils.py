@@ -53,7 +53,7 @@ class AverageClassify:
         if pred[0] == labels[idx]:
           correct_cnt += 1
     
-    return 0 if valid_cnt == 0 else (correct_cnt / valid_cnt, valid_cnt / len(labels))
+    return (0, 0) if valid_cnt == 0 else (correct_cnt / valid_cnt, valid_cnt / len(labels))
 
   @classmethod
   def dist_stats(cls, labels, preds):
@@ -78,6 +78,22 @@ class AverageClassify:
 
     plt.hist(wrong_dists, bins=30)
     plt.title("Wrong")
+    plt.show()
+
+  @classmethod
+  def plot_accuracy_coverage(cls, truth, preds):
+    tacs = []
+    for t in range(-20, -4):
+      res = cls.thold_accuracy(truth, preds, -t)
+      tacs.append([t, res[0], res[1]])
+
+    tacs = np.array(tacs)
+
+    plt.plot(tacs[:,0], tacs[:,1], "bo", label="accuracy")
+    plt.plot(tacs[:,0], tacs[:,2], "ro", label="coverage")
+    plt.title("Accuracy and Coverage vs Confidence Threshold")
+    plt.grid(True)
+    plt.legend()
     plt.show()
 
   def __init__(self, n_averages):
@@ -163,7 +179,23 @@ class SKClassify:
         if pred[0] == labels[idx]:
           correct_cnt += 1
     
-    return 0 if valid_cnt == 0 else (correct_cnt / valid_cnt, valid_cnt / len(labels))
+    return (0, 0) if valid_cnt == 0 else (correct_cnt / valid_cnt, valid_cnt / len(labels))
+
+  @classmethod
+  def plot_accuracy_coverage(cls, truth, preds):
+    tacs = []
+    for t in range(5, 105, 5):
+      res = cls.thold_accuracy(truth, preds, t/100)
+      tacs.append([t/100, res[0], res[1]])
+
+    tacs = np.array(tacs)
+
+    plt.plot(tacs[:,0], tacs[:,1], "bo", label="accuracy")
+    plt.plot(tacs[:,0], tacs[:,2], "ro", label="coverage")
+    plt.title("Accuracy and Coverage vs Confidence Threshold")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
   def fit(self, data):
     classes = np.array([x["class"] for x in data])
