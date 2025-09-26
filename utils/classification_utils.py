@@ -1,3 +1,4 @@
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -32,9 +33,9 @@ class YearData:
 
   def class2year(self, clsidx):
     if clsidx == 0 or clsidx == self.max_class:
-      return 9999
+      return int(9999)
     else:
-      return ((clsidx - 1) * self.granularity) + self.min_year
+      return int(((clsidx - 1) * self.granularity) + self.min_year)
 
 
 class AverageClassify:
@@ -241,7 +242,7 @@ class SVClassify(SKClassify):
 
 class MLPClassify(SKClassify):
   def __init__(self, n_components=None):
-    self.mCC = MLPClassifier(hidden_layer_sizes=(128))
+    self.mCC = MLPClassifier(hidden_layer_sizes=(256))
     self.pca = PCA(n_components=n_components) if n_components else None
 
 class GaussianProcessClassify(SKClassify):
@@ -303,6 +304,51 @@ class TorchClassify:
     embeddings = Tensor([x["embedding"] for x in data])
     self.model.eval()
     with torch.no_grad():
-      probs = self.model(embeddings)
+      logs = self.model(embeddings)
+      probs = torch.softmax(logs, dim=1)
       classes_probs = np.array([[[idx, ps[idx]] for idx in (-ps).reshape(-1).argsort()] for ps in probs])
     return classes_probs[:, 0]
+
+def impute_year(all_data_in, embedding_data):
+  all_data = json.loads(json.dumps(all_data_in))
+  for id in all_data.keys():
+    if "yearp" in all_data[id]:
+      del all_data[id]["yearp"]
+
+  for granularity in range(10, 70, 10):
+    p_thold = 0.999
+    mYD = YearData(1800, 2000, granularity)
+
+    fit_data = []
+    predict_data = []
+
+    for id in all_data.keys():
+      if all_data[id]["year"] < 2030:
+        all_data[id]["yearp"] = [all_data[id]["year"], 1.0]
+        fit_data.append({
+          "id": str(all_data[id]["id"]),
+          "year": all_data[id]["year"],
+          "class": mYD.year2class(all_data[id]["year"]),
+          "embedding": embedding_data[id]["siglip2"]
+        })
+      elif "yearp" not in all_data[id] or all_data[id]["yearp"][1] < p_thold:
+        predict_data.append({
+          "id": str(all_data[id]["id"]),
+          "embedding": embedding_data[id]["siglip2"]
+        })
+
+    mCC = TorchClassify(lr=1e-1, epochs=288)
+    mCC.fit(fit_data)
+    pred_prob = np.array(mCC.predict_prob(predict_data))
+
+    print(granularity, len(fit_data), len(predict_data), len(all_data), f">{p_thold}", pred_prob[pred_prob[:,1] > p_thold].shape[0])
+
+    for d, (l, p) in zip(predict_data, pred_prob):
+      if p > p_thold and "yearp" not in all_data[d["id"]]:
+        all_data[d["id"]]["yearp"] = [mYD.class2year(l), round(p, 4)]
+
+  for id in all_data.keys():
+    if "yearp" not in all_data[id]:
+      all_data[id]["yearp"] = [all_data[id]["year"], 0.0]
+
+  return all_data
