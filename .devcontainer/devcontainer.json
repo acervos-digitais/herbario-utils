@@ -1,5 +1,8 @@
 {
-  "image": "ghcr.io/psam-5020-2026s-a/5020-utils:ml",
+  "image": "ghcr.io/psam-5020-2026s-a/5020-utils:nn",
+  "features": {
+    "ghcr.io/devcontainers/features/git-lfs:1": {}
+  },
   "hostRequirements": {
     "cpus": 2
   },

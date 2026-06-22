@@ -5,6 +5,7 @@ from os import listdir, makedirs, path
 from PIL import Image as PImage, ImageOps as PImageOps
 
 from utils.brasiliana_utils import Brasiliana
+from utils.file_utils import File
 from utils.wikidata_utils import Wikidata
 
 from utils.date_utils import get_year
@@ -449,6 +450,8 @@ class WikidataMuseum(Museum):
 
 class BrasilianaMuseum(Museum):
   download_image = Brasiliana.download_image
+  run_category_query = Brasiliana.run_category_query
+  data_fields = Brasiliana.ITEM_DATA_FIELDS
 
   @classmethod
   def get_metadata(cls, museum_info):
@@ -464,7 +467,7 @@ class BrasilianaMuseum(Museum):
 
     for category in museum_info["objects"]:
       print(category)
-      qResults = Brasiliana.run_category_query(category)
+      qResults = cls.run_category_query(category)
 
       for cnt,result in enumerate(qResults):
         if cnt % 100 == 0:
@@ -499,13 +502,20 @@ class BrasilianaMuseum(Museum):
           "url": result["url"]
         }
 
-        for k,v in Brasiliana.ITEM_DATA_FIELDS.items():
+        for k,v in cls.data_fields.items():
           item_data[k] = result["data"][v]["value"].replace("&#034;", "")
 
         museum_data[id] = museum_data.get(id, {}) | item_data
         museum_data[id]["year"] = get_year(str(museum_data[id]["date"]), museum_data[id]["title"])
 
     cls.write_data(museum_data)
+
+
+class FileMuseum(BrasilianaMuseum):
+  download_image = File.download_image
+  run_category_query = File.run_category_query
+  data_fields = File.ITEM_DATA_FIELDS
+
 
 class MacUspMuseum(Museum):
   download_image = Wikidata.download_image

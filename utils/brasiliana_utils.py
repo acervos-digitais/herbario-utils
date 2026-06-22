@@ -59,7 +59,7 @@ class Brasiliana:
     items = result["items"]
 
     pagination = result["pagination"]
-    if(pagination["current_page"] < pagination["total_page"]):
+    if (pagination["current_page"] < pagination["total_page"]) and pagination["next_page"]:
       print("page", pagination["next_page"])
       nurl = re.sub(r"paged=[0-9]+", f"paged={pagination['next_page']}", url)
       items += cls.run_query(nurl)

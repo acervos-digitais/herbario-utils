@@ -63,6 +63,29 @@ MUSEUMS = {
     "collection": False,
     "objects": ["painting", "drawing"]
   },
+  "file": {
+    "label": "FILE",
+    "dir": "File",
+    "file": "file",
+    "type": "tainacan",
+    "collection": False,
+    "objects_all": [
+      "animation", "architecture", "algorithmic art", "public art", "robotic art", "synthetic art", "sound art", "bio art", "cinema", "dance", "digital photography", "fractal art", "games", "generative art", "art installation", "internet art", "digital language", "art mapping", "mobile art", "performace", "digital poetry", "software art", "artificial life", "video art"
+    ],
+
+    "objects_huge_>500" :[ "animation", "video art" ],
+    "objects_large_>200" :[ "sound art", "games", "art installation", "internet art" ],
+
+    "objects_small_<20" :[
+      "architecture", "algorithmic art", "robotic art", "bio art", "dance",
+      "digital photography", "fractal art", "art mapping", "mobile art", "performace",
+      "digital poetry", "software art", "artificial life"
+    ],
+
+    "objects_medium" :[ "public art", "synthetic art", "cinema", "generative art", "digital language" ],
+
+    "objects": [ "architecture", "algorithmic art", "robotic art", "bio art", "dance" ]
+  },
   "macusp": {
     "label": "MAC USP",
     "dir": "MACUSP",
