@@ -4,8 +4,7 @@ import json
 from os import listdir, makedirs, path
 from PIL import Image as PImage, ImageOps as PImageOps
 
-from utils.brasiliana_utils import Brasiliana
-from utils.file_utils import File
+from utils.tainacan_utils import Brasiliana, File
 from utils.wikidata_utils import Wikidata
 
 from utils.date_utils import get_year
@@ -68,7 +67,7 @@ class Museum:
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
-        print(cnt)
+        print(cnt, "/", len(qids))
 
       img_path_full = path.join(cls.IMGS["full"], f"{qid}.jpg")
       img_path_900 = path.join(cls.IMGS["900"], f"{qid}.jpg")
@@ -118,7 +117,7 @@ class Museum:
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
-        print(cnt)
+        print(cnt, "/", len(qids))
 
       img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
       color_path = path.join(cls.DIRS["colors"], f"{qid}.json")
@@ -153,7 +152,7 @@ class Museum:
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
-        print(cnt)
+        print(cnt, "/", len(qids))
 
       img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
       embedding_path = path.join(cls.DIRS["embeddings"], f"{qid}.json")
@@ -192,7 +191,7 @@ class Museum:
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
-        print(cnt)
+        print(cnt, "/", len(qids))
 
       img_path = path.join(cls.IMGS["900"], f"{qid}.jpg")
       object_path = path.join(cls.DIRS["objects"], f"{qid}.json")
@@ -228,7 +227,7 @@ class Museum:
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
-        print(cnt)
+        print(cnt, "/", len(qids))
 
       img_path = path.join(cls.IMGS["900"], f"{qid}.jpg")
       caption_path = path.join(cls.DIRS["captions"], f"{qid}.json")
@@ -271,7 +270,7 @@ class Museum:
 
     for cnt,qid in enumerate(qids):
       if cnt % 32 == 0:
-        print(cnt)
+        print(cnt, "/", len(qids))
 
       img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
 
@@ -414,7 +413,7 @@ class WikidataMuseum(Museum):
 
         for cnt,result in enumerate(cResults):
           if cnt % 100 == 0:
-            print(cnt)
+            print(cnt, "/", len(cResults))
 
           id = result["qid"]["value"]
           defurlval = {"value": f"https://www.wikidata.org/wiki/{id}"}
@@ -471,7 +470,7 @@ class BrasilianaMuseum(Museum):
 
       for cnt,result in enumerate(qResults):
         if cnt % 100 == 0:
-          print(cnt)
+          print(cnt, "/", len(qResults))
 
         if "http" not in result["document"]["value"]:
           continue
@@ -479,12 +478,6 @@ class BrasilianaMuseum(Museum):
         id = result["id"]
 
         depicts = { "en": [], "pt": [] }
-
-        desc_pt = result["data"]["description"]["value"].replace("&#034;", "")
-        if desc_pt != "" and len(desc_pt) > 2:
-          desc_en = cls.pten.translate(desc_pt).lower()
-          depicts["en"] = cls.pos.get_nouns(desc_en)
-          depicts["pt"] = [cls.enpt.translate(t).lower() for t in depicts["en"]]
 
         if id in museum_data:
           cats = set(museum_data[id]["categories"])
@@ -504,6 +497,13 @@ class BrasilianaMuseum(Museum):
 
         for k,v in cls.data_fields.items():
           item_data[k] = result["data"][v]["value"].replace("&#034;", "")
+
+        desc_pt = item_data["description"].replace("&#034;", "")
+        if desc_pt != "" and len(desc_pt) > 2:
+          desc_en = cls.pten.translate(desc_pt).lower()
+          depicts["en"] = cls.pos.get_nouns(desc_en)
+          depicts["pt"] = [cls.enpt.translate(t).lower() for t in depicts["en"]]
+        item_data["depicts"] = depicts
 
         museum_data[id] = museum_data.get(id, {}) | item_data
         museum_data[id]["year"] = get_year(str(museum_data[id]["date"]), museum_data[id]["title"])
