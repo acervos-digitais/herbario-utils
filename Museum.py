@@ -7,8 +7,9 @@ from PIL import Image as PImage, ImageOps as PImageOps
 from utils.tainacan_utils import Brasiliana, File
 from utils.wikidata_utils import Wikidata
 
-from utils.date_utils import get_year
 from utils.color_utils import get_dominant_colors
+from utils.data_utils import get_tsne_embeddings
+from utils.date_utils import get_year
 
 from models.CLIP import Clip
 from models.EnPt import EnPt, PtEn, PartOfSpeech
@@ -326,29 +327,33 @@ class Museum:
     return all_data
 
   @classmethod
-  def graft_data(cls, all_data, extra_data):
-    for id in all_data.keys():
-      if id not in extra_data:
+  def add_field_to_items(cls, items, extra_field):
+    for id in items.keys():
+      if id not in extra_field:
         print(id, "not in extra data")
         continue
 
-      for k,v in extra_data[id].items():
-        if k in all_data[id]:
+      for k,v in extra_field[id].items():
+        if k in items[id]:
           print(k, "already in", id)
         else:
-          all_data[id][k] = v
-    return all_data
+          items[id][k] = v
+    return items
 
   @classmethod
-  def combine_museums(cls, all_museums, out_dir, out_prefix, data_dirs, extra_data=None):
+  def combine_museums(cls, all_museums, out_dir, out_prefix, data_types, with_tsne=[]):
     out_file_template = path.join(out_dir, out_prefix + "_XTYPEX.json")
 
-    for out_type in data_dirs:
+    if len(with_tsne) > 0:
+      embedding_data = cls.combine_all_data(all_museums, "embeddings")
+      tsne_embeddings = get_tsne_embeddings(embedding_data)
+
+    for out_type in data_types:
       output_file_path = out_file_template.replace("XTYPEX", out_type)
       all_data = cls.combine_all_data(all_museums, out_type)
 
-      if extra_data != None and out_type in extra_data:
-        all_data = cls.graft_data(all_data, extra_data[out_type])
+      if out_type in with_tsne:
+        all_data = cls.add_field_to_items(all_data, tsne_embeddings)
 
       print("writing", len(all_data))
 
