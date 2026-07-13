@@ -200,6 +200,11 @@ class Clusterer:
         "clusters": {"descriptions": descriptions}
       }
 
+      nc_file_name = out_file_name.replace(".json", f"0{nc}"[-2:] + ".json")
+      out_file_path = f"./metadata/json/{self.data_prefix}_{nc_file_name}"
+      with open(out_file_path, "w", encoding="utf-8") as ofp:
+        json.dump({ int(nc): self.cluster_data[nc] }, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+
     out_file_path = f"./metadata/json/{self.data_prefix}_{out_file_name}"
     with open(out_file_path, "w", encoding="utf-8") as ofp:
       json.dump(self.cluster_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
