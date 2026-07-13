@@ -21,7 +21,7 @@ class SigLip2:
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)
 
     with torch.no_grad():
-      my_embedding = self.model.get_image_features(**input).detach().cpu().squeeze()
+      my_embedding = self.model.get_image_features(**input).pooler_output.detach().cpu().squeeze()
 
     return my_embedding
 
@@ -35,7 +35,7 @@ class SigLip2:
     txt_input = self.processor(text=texts, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
 
     with torch.no_grad():
-      txt_embedding = self.model.get_text_features(**txt_input).cpu()
+      txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu()
 
     dists = cosine_distances(img_embedding.reshape(1, -1), txt_embedding)
 
@@ -48,7 +48,7 @@ class SigLip2:
     txt_input = self.processor(text=text, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
 
     with torch.no_grad():
-      txt_embedding = self.model.get_text_features(**txt_input).cpu()
+      txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu()
 
     dists = cosine_distances(txt_embedding, embeddings)
     return dists.argsort(axis=1)
