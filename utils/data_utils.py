@@ -6,7 +6,7 @@ import PIL.Image as PImage
 from os import listdir, path
 from sklearn.metrics.pairwise import euclidean_distances
 
-from .cluster_utils import tsne_kmeans
+from .cluster_utils import tsne_embeddings, tsne_kmeans, umap_embeddings, umap_kmeans
 from models.LlamaVision import LlamaVision
 from models.SigLip2 import SigLip2
 
@@ -78,6 +78,22 @@ def get_description_words(data_path, lang="en", list_length=500):
   cwords = get_caption_words(data_path, lang=lang)[:split_idx]
   dwords = get_depicts_words(data_path, lang=lang)[:(list_length - split_idx)]
   return list(set(cwords).union(set(dwords)))
+
+
+def reduce_embeddings_tsne(embedding_data, embedding_model="siglip2"):
+  ids = np.array(list(embedding_data.keys()))
+  emb_raw = np.array([v[embedding_model] for v in embedding_data.values()])
+  emb_reduced = tsne_embeddings(emb_raw, n_components=3, perplexity=30)
+  reduced_data = { k:v for k,v in zip(ids, emb_reduced) }
+  return reduced_data
+
+
+def reduce_embeddings_umap(embedding_data, embedding_model="siglip2"):
+  ids = np.array(list(embedding_data.keys()))
+  emb_raw = np.array([v[embedding_model] for v in embedding_data.values()])
+  emb_reduced = umap_embeddings(emb_raw, n_components=8, n_neighbors=15)
+  reduced_data = { k:v for k,v in zip(ids, emb_reduced) }
+  return reduced_data
 
 
 class Representer:
@@ -161,10 +177,11 @@ class Clusterer:
 
     for nc in range(min_nc, max_nc, step_nc):
       print(nc, "clusters...")
-      embs, clusters, centers = tsne_kmeans(embeddings, n_clusters=nc)
-      cluster_distances = euclidean_distances(centers, embs)
+      embs, clusters, centers_np = tsne_kmeans(embeddings, n_clusters=nc)
+      cluster_distances = euclidean_distances(centers_np, embs)
       id_idxs_by_distance = cluster_distances.argsort(axis=1)
       ids_by_distance = ids[id_idxs_by_distance]
+      centers = [[round(c,6) for c in center] for center in centers_np]
 
       i_c_d = zip(ids.tolist(), clusters.tolist(), cluster_distances.T.tolist())
 

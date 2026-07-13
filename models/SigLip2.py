@@ -15,7 +15,7 @@ class SigLip2:
   def __init__(self, model=None):
     model_name = SigLip2.MODEL_NAME if model is None else model
     self.processor = AutoProcessor.from_pretrained(model_name)
-    self.model = AutoModel.from_pretrained(model_name, device_map="auto").to(SigLip2.DEVICE)
+    self.model = AutoModel.from_pretrained(model_name).to(SigLip2.DEVICE)
 
   def get_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)

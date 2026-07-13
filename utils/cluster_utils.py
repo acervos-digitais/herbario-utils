@@ -2,10 +2,15 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 
+from random import sample, seed
+
+from scipy.optimize import minimize
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+
+from umap import UMAP
 
 from PIL import Image as PImage
 
@@ -17,25 +22,84 @@ def raw_kmeans(emb_raw, n_clusters=8):
   return emb_raw, emb_clusters, mCluster.cluster_centers_
 
 
-def pca_kmeans(emb_raw, n_clusters=8, n_components=128):
+def pca_embeddings(emb_raw, n_components=128):
   n_components = min(n_components, len(emb_raw))
   mPCA = PCA(n_components=n_components, random_state=10)
+  emb_reduced = mPCA.fit_transform(StandardScaler().fit_transform(emb_raw))
+  return emb_reduced
+
+
+def tsne_embeddings(emb_raw, n_components=3, perplexity=30):
+  mTSNE = TSNE(n_components=n_components, perplexity=perplexity, random_state=10)
+  emb_reduced = mTSNE.fit_transform(StandardScaler().fit_transform(emb_raw))
+  return emb_reduced
+
+
+def umap_embeddings(emb_raw, n_components=8, n_neighbors=15):
+  mUMAP = UMAP(n_components=n_components, n_neighbors=n_neighbors, random_state=10, transform_seed=1010)
+  emb_reduced = mUMAP.fit_transform(StandardScaler().fit_transform(emb_raw))
+  return emb_reduced
+
+
+def pca_kmeans(emb_raw, n_clusters=8, n_components=128):
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_reduced = mPCA.fit_transform(StandardScaler().fit_transform(emb_raw))
+  emb_reduced = pca_embeddings(emb_raw, n_components)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_
 
 
 def tsne_kmeans(emb_raw, n_clusters=8, n_components=3, perplexity=30):
-  mTSNE = TSNE(n_components=n_components, perplexity=perplexity, random_state=10)
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_reduced = mTSNE.fit_transform(StandardScaler().fit_transform(emb_raw))
+  emb_reduced = tsne_embeddings(emb_raw, n_components, perplexity)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_
+
+
+def umap_kmeans(emb_raw, n_clusters=8, n_components=8, n_neighbors=15):
+  mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
+
+  emb_reduced = umap_embeddings(emb_raw, n_components, n_neighbors)
+  emb_clusters = mCluster.fit_predict(emb_reduced)
+
+  return emb_reduced, emb_clusters, mCluster.cluster_centers_
+
+
+def cluster_center_from_dists(known_points, known_dists):
+  def error_function(target_pos, points, distances):
+    calc_dists = np.linalg.norm(points - target_pos, axis=1)
+    return np.sum((calc_dists - distances) ** 2)
+
+  initial_guess = np.mean(known_points, axis=0)
+
+  result = minimize(
+    fun=error_function,
+    x0=initial_guess,
+    args=(known_points, known_dists),
+    method="Nelder-Mead"
+  )
+
+  if result.success:
+    return result.x
+  else:
+    raise Exception(result.message)
+
+
+def cluster_centers_from_clusters_info(clusters_info, embedding_data):
+  nclusters = len(clusters_info["clusters"]["descriptions"]["gemma3"]["en"])
+  centers = []
+  for cid in range(0, nclusters):
+    cluster_images = { iid:iinfo for iid,iinfo in clusters_info["images"].items() if iinfo["cluster"] == cid }
+    seed(101010)
+    img_ids = sample(cluster_images.keys(), k=64)
+    img_locs = [embedding_data[iid] for iid in img_ids]
+    img_dists = np.array([clusters_info["images"][iid]["distances"] for iid in img_ids])[:, cid]
+    center = cluster_center_from_dists(img_locs, img_dists)
+    centers.append([round(x,6) for x in center.tolist()])
+  return centers
 
 
 def plot_clusters(clusters, pcas, title="", color_clusters=True):
@@ -75,6 +139,10 @@ def visualize_pca_clusters(raw_embeddings, image_paths, n_clusters=8, grid_dim=8
 
 def visualize_tsne_clusters(raw_embeddings, image_paths, n_clusters=8, grid_dim=8):
   m_emb, m_clusters, m_centers = tsne_kmeans(raw_embeddings, n_clusters=n_clusters)
+  visualize_clusters(m_emb, m_clusters, m_centers, image_paths, grid_dim=grid_dim)
+
+def visualize_umap_clusters(raw_embeddings, image_paths, n_clusters=8, grid_dim=8):
+  m_emb, m_clusters, m_centers = umap_kmeans(raw_embeddings, n_clusters=n_clusters)
   visualize_clusters(m_emb, m_clusters, m_centers, image_paths, grid_dim=grid_dim)
 
 def visualize_clusters(m_emb, m_clusters, m_centers, image_paths, grid_dim=8):
