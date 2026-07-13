@@ -1,8 +1,11 @@
 import base64
 import json
 
+from json_repair import repair_json
+
 from ollama import Client
-from pydantic import BaseModel, conlist
+from pydantic import BaseModel, Field
+from typing import List
 
 class Caption(BaseModel):
   people: list[str]
@@ -16,8 +19,8 @@ class Caption(BaseModel):
   description: str
 
 class CommonNouns(BaseModel):
-  generic_nouns: conlist(str, min_length=2, max_length=4)
-  specific_nouns: conlist(str, min_length=2, max_length=4)
+  generic_nouns: List[str] = Field(min_length=2, max_length=4)
+  specific_nouns: List[str] = Field(min_length=2, max_length=4)
 
 class CommonDescriptions(BaseModel):
   en: CommonNouns
@@ -100,13 +103,16 @@ class LlamaVision:
         "role": "user",
         # "content": f"Using few words, what do these paintings have in common? Give a generic description about the style of the paintings using 2 or 3 words and a more specific description about the content of the painting using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
         # "content": f"Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give descriptions in {language}.",
-        "content": f"Give separate descriptions in portuguese and english. Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give separate descriptions in portuguese and english.",
+        # "content": "Give separate descriptions in portuguese and english. Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give separate descriptions in portuguese and english.",
+        "content": "Give separate descriptions in portuguese and english. Using few words, what do these paintings have in common? Give a generic description using 2 or 3 words and a more specific description using 2 or 3 words. Be objective. Avoid hyperbole or emotional terms. Give separate descriptions in portuguese and english. Output valid JSON ONLY. Two lists of single words, per language. One word per item on list. Make sure JSON is valid. No hanging quotes.",
         "images": imgs,
       }]
     )
 
     # get object
-    res_obj = json.loads(response["message"]["content"])
+    res_content = response["message"]["content"].replace('“', '"').replace('”', '"').replace("'", '"')
+    res_content = repair_json(res_content)
+    res_obj = json.loads(res_content)
 
     # combine generic and specific descriptions
     for lang,groups in res_obj.items():
