@@ -132,6 +132,7 @@ class File(Tainacan):
     "country": "pais-2",
     "date": "ano-edicao-4",
     "description": "description-5",
+    "museum": "museum",
   }
 
 
@@ -155,6 +156,7 @@ class File(Tainacan):
     items = Brasiliana.run_query(url)
     for it in items:
       it["id"] = f"F{it['id']}"
+      it["data"]["museum"] = { "value": "FILE" }
       country = re.findall("\(([A-Z]{2,3})\)", it["data"]["pais-2"]["value"])
       if len(country) > 0 and (len(country[0]) == 2 or len(country[0]) == 3):
         it["data"]["pais-2"]["value"] = country[0]
