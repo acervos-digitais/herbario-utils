@@ -117,7 +117,7 @@ class File(Tainacan):
     "digital language": 55,
     "art mapping": 216,
     "mobile art": 222,
-    "performace": 166,
+    "performance": 166,
     "digital poetry": 189,
     "award": 42,
     "symposium": 241,

@@ -11,8 +11,8 @@ from models.LlamaVision import LlamaVision
 from models.SigLip2 import SigLip2
 
 STOP_WORDS = {
-  "en": ["image", "images", "member", "members", "form", "forms", "subject", "subjects", "figure", "figures", "observer", "observers", "viewer", "viewers", "background", "apparition", "shoulder", "shoulders", "e-mail", "email", "generic"],
-  "pt": ["imagem", "imagens", "membro", "membros", "formulários", "formulário", "hóspede", "hóspedes", "residente", "residentes", "estudioso", "estudiosos", "observador", "observadores", "figura", "figuras", "colono", "colonos", "caracteres", "subcrescimento", "sendo", "marfim", "assinatura", "pescoço", "ver", "vénus", "sketch", "ombro", "ombros", "e-mail", "email", "geral", "townfolk", "negro", "negros", "negra", "negras"]
+  "en": ["artist", "artists", "user", "users", "image", "images", "member", "members", "form", "forms", "subject", "subjects", "figure", "figures", "observer", "observers", "viewer", "viewers", "background", "apparition", "shoulder", "shoulders", "e-mail", "email", "generic"],
+  "pt": ["artista", "artistas", "usuário", "usuários", "imagem", "imagens", "membro", "membros", "formulários", "formulário", "hóspede", "hóspedes", "residente", "residentes", "estudioso", "estudiosos", "observador", "observadores", "figura", "figuras", "colono", "colonos", "caracteres", "subcrescimento", "sendo", "marfim", "assinatura", "pescoço", "ver", "vénus", "sketch", "ombro", "ombros", "e-mail", "email", "geral", "townfolk", "negro", "negros", "negra", "negras", "fotografa", "fotografas", "fotógrafa", "fotógrafas"]
 }
 
 REPLACE_WORDS = {
