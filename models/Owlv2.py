@@ -165,7 +165,7 @@ class Owlv2Embedding:
     self.processor = Owlv2Processor.from_pretrained(model_name)
     self.model = Owlv2Model.from_pretrained(model_name).to(Owlv2Embedding.DEVICE)
 
-  def get_embedding(self, img):
+  def get_image_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(Owlv2Embedding.DEVICE)
 
     with torch.no_grad():

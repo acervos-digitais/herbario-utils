@@ -17,7 +17,7 @@ class SigLip2:
     self.processor = AutoProcessor.from_pretrained(model_name)
     self.model = AutoModel.from_pretrained(model_name).to(SigLip2.DEVICE)
 
-  def get_embedding(self, img):
+  def get_image_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)
 
     with torch.no_grad():
@@ -30,7 +30,7 @@ class SigLip2:
 
     img_embedding = img
     if isinstance(img, PImage.Image):
-      img_embedding = self.get_embedding(img).cpu()
+      img_embedding = self.get_image_embedding(img).cpu()
 
     txt_input = self.processor(text=texts, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
 

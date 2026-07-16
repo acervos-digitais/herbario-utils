@@ -10,7 +10,7 @@ class Clip:
     self.processor = CLIPProcessor.from_pretrained(Clip.MODEL_NAME)
     self.model = CLIPModel.from_pretrained(Clip.MODEL_NAME).to(Clip.DEVICE)
 
-  def get_embedding(self, img):
+  def get_image_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt", padding=True).to(Clip.DEVICE)
 
     with torch.no_grad():

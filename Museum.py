@@ -170,7 +170,7 @@ class Museum:
         continue
 
       img = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
-      img_embedding = [round(v, 8) for v in cls.model.get_embedding(img).tolist()]
+      img_embedding = [round(v, 8) for v in cls.model.get_image_embedding(img).tolist()]
 
       embedding_data[qid][model] = img_embedding
 

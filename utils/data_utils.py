@@ -147,7 +147,7 @@ class Describer:
     return cimg
 
   def describe(self, boxKeys_by_score, num_images=16, words_offset=0, max_words=8):
-    img_embeddings = np.array([self.siglip.get_embedding(self.get_crop_img(boxKey)) for boxKey in boxKeys_by_score[:num_images]])
+    img_embeddings = np.array([self.siglip.get_image_embedding(self.get_crop_img(boxKey)) for boxKey in boxKeys_by_score[:num_images]])
     embeddings_avg = img_embeddings.mean(axis=0)
 
     descriptions = {}
