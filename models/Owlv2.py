@@ -1,18 +1,17 @@
-import torch
-
+from torch import cuda, no_grad, sort, tensor
 from transformers import Owlv2Processor, Owlv2ForObjectDetection, Owlv2Model
 from warnings import simplefilter
 
 simplefilter(action="ignore")
 
 class Owlv2:
-  OBJ_TARGET_SIZE = torch.Tensor([500, 500])
+  OBJ_TARGET_SIZE = tensor([500.0, 500.0]).float()
   MODEL_NAME = "google/owlv2-base-patch16"
-  DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+  DEVICE = "cuda" if cuda.is_available() else "cpu"
 
   @classmethod
   def px_to_pct(cls, box, img_w, img_h):
-    scale_factor = torch.tensor([max(img_w, img_h) / img_w , max(img_w, img_h) / img_h])
+    scale_factor = tensor([max(img_w, img_h) / img_w , max(img_w, img_h) / img_h])
     img_dims = cls.OBJ_TARGET_SIZE / scale_factor
     return [round(x, 4) for x in (box.cpu().reshape(2, -1) / img_dims).reshape(-1).tolist()]
 
@@ -116,7 +115,7 @@ class Owlv2:
 
   def run_object_detection(self, img, labels, tholds):
     input = self.processor(text=labels, images=img, return_tensors="pt").to(Owlv2.DEVICE)
-    with torch.no_grad():
+    with no_grad():
       obj_out = self.model(**input)
 
     res = self.processor.post_process_object_detection(outputs=obj_out, target_sizes=[Owlv2.OBJ_TARGET_SIZE])
@@ -145,11 +144,11 @@ class Owlv2:
   def get_objectness_boxes(self, img, topk=8):
     tsize = [img.size[::-1]]
     input = self.processor(images=img, text="", return_tensors="pt").to(Owlv2.DEVICE)
-    with torch.no_grad():
+    with no_grad():
       output = self.model(**input)
 
     objectnesses = output["objectness_logits"].squeeze()
-    objectness_idxs = torch.sort(objectnesses)[1][-topk:].tolist()
+    objectness_idxs = sort(objectnesses)[1][-topk:].tolist()
     pred_boxes = self.processor.post_process_object_detection(outputs=output, target_sizes=tsize, threshold=0)[0]["boxes"]
 
     crop_boxes = [[int(i) for i in pred_boxes[idx].tolist()] for idx in objectness_idxs]
@@ -158,7 +157,7 @@ class Owlv2:
 
 class Owlv2Embedding:
   MODEL_NAME = "google/owlv2-base-patch16"
-  DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+  DEVICE = "cuda" if cuda.is_available() else "cpu"
 
   def __init__(self, model=None):
     model_name = Owlv2Embedding.MODEL_NAME if model is None else model
@@ -168,7 +167,7 @@ class Owlv2Embedding:
   def get_image_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(Owlv2Embedding.DEVICE)
 
-    with torch.no_grad():
+    with no_grad():
       output = self.model.get_image_features(**input)
 
     my_embedding = output.detach().squeeze()

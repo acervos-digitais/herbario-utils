@@ -1,8 +1,9 @@
-import PIL.Image as PImage
-import torch
+import numpy as np
 
+from PIL import Image as PImage
 from sklearn.metrics.pairwise import cosine_distances
 
+from torch import cuda, no_grad, relu
 from transformers import AutoModel, AutoProcessor
 from warnings import simplefilter
 
@@ -10,7 +11,7 @@ simplefilter(action="ignore")
 
 class SigLip2:
   MODEL_NAME = "google/siglip2-giant-opt-patch16-256"
-  DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+  DEVICE = "cuda" if cuda.is_available() else "cpu"
 
   @classmethod
   def scaleMinMax(cls, data):
@@ -31,7 +32,7 @@ class SigLip2:
   def get_image_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)
 
-    with torch.no_grad():
+    with no_grad():
       my_embedding = self.model.get_image_features(**input).pooler_output.detach().cpu().squeeze()
 
     return my_embedding
@@ -45,7 +46,7 @@ class SigLip2:
 
     txt_input = self.processor(text=texts, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
 
-    with torch.no_grad():
+    with no_grad():
       txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu()
 
     dists = cosine_distances(img_embedding.reshape(1, -1), txt_embedding)
@@ -58,7 +59,7 @@ class SigLip2:
     text = [f" {t}" for t in text]
     txt_input = self.processor(text=text, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
 
-    with torch.no_grad():
+    with no_grad():
       txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu()
 
     dists = cosine_distances(txt_embedding, embeddings)
