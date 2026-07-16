@@ -12,10 +12,21 @@ class SigLip2:
   MODEL_NAME = "google/siglip2-giant-opt-patch16-256"
   DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+  @classmethod
+  def scaleMinMax(cls, data):
+    dmin = data.min()
+    dmax = data.max()
+    return (data - dmin) / (dmax - dmin + 1e-10)
+
   def __init__(self, model=None):
     model_name = SigLip2.MODEL_NAME if model is None else model
     self.processor = AutoProcessor.from_pretrained(model_name)
     self.model = AutoModel.from_pretrained(model_name).to(SigLip2.DEVICE)
+
+    self.model_grid_size = (
+      self.model.config.vision_config.image_size //
+      self.model.config.vision_config.patch_size
+    )
 
   def get_image_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)
@@ -52,3 +63,33 @@ class SigLip2:
 
     dists = cosine_distances(txt_embedding, embeddings)
     return dists.argsort(axis=1)
+
+  def get_gradient_activation_map(self, img, labels, *, img_idx=0, label_idx=None):
+    label_idxs = range(len(labels)) if label_idx is None else [label_idx]
+    label_activations = []
+
+    inputs = self.processor(
+      text=labels, images=img,
+      padding="max_length", max_length=64, truncation=True,
+      return_tensors="pt"
+    ).to(SigLip2.DEVICE)
+
+    outputs = self.model(**inputs)
+
+    patch_features = outputs.vision_model_output.last_hidden_state
+    patch_features.retain_grad()
+
+    for lidx in label_idxs:
+      similarity_score = outputs.logits_per_image[img_idx, lidx]
+
+      self.model.zero_grad()
+      similarity_score.backward(retain_graph=True) # need L4 GPU with 24GB (15.5GB)
+      patch_grads = patch_features.grad
+      patch_weights = patch_grads[img_idx].mean(dim=0)
+
+      cam = (patch_weights * patch_features[img_idx]).sum(dim=-1)
+      cam = relu(cam)
+      label_activations.append(cam.detach().cpu().numpy())
+
+    cam01 = SigLip2.scaleMinMax(np.array(label_activations).mean(axis=0))
+    return cam01.reshape(self.model_grid_size, self.model_grid_size)
