@@ -3,7 +3,8 @@ import numpy as np
 from PIL import Image as PImage
 from sklearn.metrics.pairwise import cosine_distances
 
-from torch import cuda, no_grad, relu
+from torch import cuda, no_grad, relu, Tensor
+from torch.nn import functional as F
 from transformers import AutoModel, AutoProcessor
 from warnings import simplefilter
 
@@ -37,6 +38,14 @@ class SigLip2:
 
     return my_embedding
 
+  def get_text_embedding(self, text):
+    txt_input = self.processor(text=text, padding="max_length", max_length=64, truncation=True, return_tensors="pt").to(SigLip2.DEVICE)
+
+    with no_grad():
+      txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu().squeeze()
+
+    return txt_embedding
+
   def zero_shot(self, img, tags, prefix="painting with a"):
     texts = [f"{prefix} {t}" for t in tags]
 
@@ -66,22 +75,48 @@ class SigLip2:
     return dists.argsort(axis=1)
 
   def get_gradient_activation_map(self, img, labels, *, img_idx=0, label_idx=None):
+    if isinstance(labels, str):
+      labels = [labels]
+
+    if isinstance(labels, list) and isinstance(labels[0], str):
+      inputs = self.processor(
+        text = labels,
+        padding="max_length", max_length=64, truncation=True,
+        return_tensors="pt"
+      ).to(SigLip2.DEVICE)
+
+      with no_grad():
+        text_embs = self.model.text_model(**inputs).pooler_output
+        labels = text_embs.detach().cpu().numpy()
+
+    if isinstance(labels, np.ndarray) and len(labels.shape) == 1:
+      labels = labels[None, :]
+
+    if (isinstance(labels, np.ndarray) or isinstance(labels, Tensor)) and len(labels.shape) == 2:
+      labels = Tensor(labels).to(SigLip2.DEVICE)
+      return self.get_gradient_activation_map_from_embeddings(img, labels, img_idx=img_idx, label_idx=label_idx)
+    else:
+      raise TypeError(f"Expected a 2D np.ndarray or Tensor, got {type(labels)}")
+
+  def get_gradient_activation_map_from_embeddings(self, img, labels, *, img_idx=0, label_idx=None):
     label_idxs = range(len(labels)) if label_idx is None else [label_idx]
     label_activations = []
 
     inputs = self.processor(
-      text=labels, images=img,
+      images=img,
       padding="max_length", max_length=64, truncation=True,
       return_tensors="pt"
     ).to(SigLip2.DEVICE)
 
-    outputs = self.model(**inputs)
+    outputs = self.model.vision_model(**inputs)
+    img_embedding = F.normalize(outputs.pooler_output[img_idx], p=2, dim=-1)
 
-    patch_features = outputs.vision_model_output.last_hidden_state
+    patch_features = outputs.last_hidden_state
     patch_features.retain_grad()
 
     for lidx in label_idxs:
-      similarity_score = outputs.logits_per_image[img_idx, lidx]
+      label_embedding = F.normalize(labels[lidx], p=2, dim=-1)
+      similarity_score = (label_embedding * img_embedding).sum()
 
       self.model.zero_grad()
       similarity_score.backward(retain_graph=True) # need L4 GPU with 24GB (15.5GB)
