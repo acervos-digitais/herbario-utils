@@ -17,52 +17,41 @@ from PIL import Image as PImage
 def raw_kmeans(emb_raw, n_clusters=8):
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_clusters = mCluster.fit_predict(StandardScaler().fit_transform(emb_raw))
+  emp_pre = StandardScaler().fit_transform(emb_raw)
+  emb_clusters = mCluster.fit_predict(emp_pre)
 
   return emb_raw, emb_clusters, mCluster.cluster_centers_
 
 
-def pca_embeddings(emb_raw, n_components=128):
+def pca_kmeans(emb_raw, n_clusters=8, n_components=128):
   n_components = min(n_components, len(emb_raw))
   mPCA = PCA(n_components=n_components, random_state=10)
-  emb_reduced = mPCA.fit_transform(StandardScaler().fit_transform(emb_raw))
-  return emb_reduced
-
-
-def tsne_embeddings(emb_raw, n_components=3, perplexity=30):
-  mTSNE = TSNE(n_components=n_components, perplexity=perplexity, random_state=10)
-  emb_reduced = mTSNE.fit_transform(StandardScaler().fit_transform(emb_raw))
-  return emb_reduced
-
-
-def umap_embeddings(emb_raw, n_components=8, n_neighbors=15):
-  mUMAP = UMAP(n_components=n_components, n_neighbors=n_neighbors, random_state=10, transform_seed=1010)
-  emb_reduced = mUMAP.fit_transform(StandardScaler().fit_transform(emb_raw))
-  return emb_reduced
-
-
-def pca_kmeans(emb_raw, n_clusters=8, n_components=128):
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_reduced = pca_embeddings(emb_raw, n_components)
+  emb_pre = StandardScaler().fit_transform(emb_raw)
+  emb_reduced = mPCA.fit_transform(emb_pre)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_
 
 
 def tsne_kmeans(emb_raw, n_clusters=8, n_components=3, perplexity=30):
+  mTSNE = TSNE(n_components=n_components, perplexity=perplexity, random_state=10)
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_reduced = tsne_embeddings(emb_raw, n_components, perplexity)
+  emb_pre = StandardScaler().fit_transform(emb_raw)
+  emb_reduced = mTSNE.fit_transform(emb_pre)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_
 
 
-def umap_kmeans(emb_raw, n_clusters=8, n_components=8, n_neighbors=15):
+def umap_kmeans(emb_raw, n_clusters=8, n_components=64, n_neighbors=100):
+  mUMAP = UMAP(n_components=n_components, n_neighbors=n_neighbors, random_state=10, transform_seed=1010, metric="cosine")
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_reduced = umap_embeddings(emb_raw, n_components, n_neighbors)
+  emb_pre = StandardScaler().fit_transform(emb_raw)
+  emb_reduced = mUMAP.fit_transform(emb_pre)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_

@@ -157,7 +157,7 @@ class File(Tainacan):
     for it in items:
       it["id"] = f"F{it['id']}"
       it["data"]["museum"] = { "value": "FILE" }
-      country = re.findall("\(([A-Z]{2,3})\)", it["data"]["pais-2"]["value"])
+      country = re.findall(r"\(([A-Z]{2,3})\)", it["data"]["pais-2"]["value"])
       if len(country) > 0 and (len(country[0]) == 2 or len(country[0]) == 3):
         it["data"]["pais-2"]["value"] = country[0]
     return items
