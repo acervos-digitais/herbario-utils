@@ -4,7 +4,7 @@ import numpy as np
 import PIL.Image as PImage
 
 from os import listdir, path
-from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.metrics.pairwise import cosine_distances, euclidean_distances
 
 from .cluster_utils import pca_kmeans, raw_kmeans, tsne_kmeans, umap_kmeans
 from models.LlamaVision import LlamaVision
@@ -82,8 +82,8 @@ def get_description_words(data_path, lang="en", list_length=500):
 
 class Representer:
   def __init__(self, embedding_data, model="siglip2"):
-    self.ids = np.array(list(embedding_data.keys()))
-    self.embedding_values = [x[model] for x in embedding_data.values()]
+    self.ids = np.array(sorted(list(embedding_data.keys())))
+    self.embedding_values = [embedding_data[id][model] for id in self.ids]
     self.siglip = SigLip2()
 
   def represent(self, text):
@@ -155,7 +155,7 @@ class Clusterer:
     self.embedding_data = embedding_data
     self.cluster_data = {}
 
-  def export_clusters(self, out_file_name, embedding_model="siglip2", dim_red=None, min_nc=4, max_nc=17, step_nc=2, describe="all", **describe_params):
+  def export_clusters(self, out_file_name, embedding_model="siglip2", dim_red=None, min_nc=4, max_nc=17, step_nc=2, describe="all"):
     dim_red = "raw" if dim_red is None else dim_red.lower()
     ids = np.array(sorted(list(self.embedding_data.keys())))
     embeddings = np.array([self.embedding_data[id][embedding_model] for id in ids])
@@ -188,18 +188,19 @@ class Clusterer:
       if dim_red in self.cluster_data[nc]:
         continue
 
-      red_embs, clusters, centers_np = cluster_function(embeddings, n_clusters=nc, normalize=True)
-      cluster_distances = euclidean_distances(centers_np, red_embs)
+      red_embs, clusters, red_centers_np = cluster_function(embeddings, n_clusters=nc, normalize=True)
+      # cluster_distances = euclidean_distances(red_centers_np, red_embs)
+      cluster_distances = cosine_distances(red_centers_np, red_embs)
       id_idxs_by_distance = cluster_distances.argsort(axis=1)
       ids_by_distance = ids[id_idxs_by_distance]
-      centers = [[round(c,6) for c in center] for center in centers_np.tolist()]
+      centers = [[round(c,6) for c in center] for center in red_centers_np.tolist()]
 
       i_c_d = zip(ids.tolist(), clusters.tolist(), cluster_distances.T.tolist())
 
       if describe == "gemma3":
-        descriptions = {describe: self.describe_by_vlm(ids_by_distance, **describe_params)}
+        descriptions = {describe: self.describe_by_vlm(ids_by_distance)}
       elif describe == "siglip2":
-        descriptions = {describe: self.describe_by_siglip2(ids_by_distance, **{"words_offset":2 , **describe_params})}
+        descriptions = {describe: self.describe_by_siglip2(ids_by_distance)}
       else:
         descriptions = {
           "gemma3" : self.describe_by_vlm(ids_by_distance),
@@ -208,7 +209,7 @@ class Clusterer:
 
       self.cluster_data[nc][dim_red] = {
         "images": {id: {"cluster": c, "distances": [round(d,6) for d in ds]} for  id,c,ds in i_c_d},
-        "clusters": {"descriptions": descriptions, "centers": centers}
+        "clusters": {"descriptions": descriptions}
       }
 
       with open(nc_out_file_path, "w", encoding="utf-8") as ofp:
@@ -237,12 +238,16 @@ class Clusterer:
     return descriptions
 
 
-  def describe_by_siglip2(self, ids_by_distance, num_images=48, words_offset=0, max_words=8, word_list_limit=500):
+  def describe_by_siglip2(self, ids_by_distance, num_images=32, words_offset=0, max_words=8, word_list_limit=500):
     if self.siglip == None:
       self.siglip = SigLip2()
       self.words = {
         "en": get_caption_words(self.data_file_path, lang="en", categories=["people", "fauna", "flora"])[:word_list_limit],
-        "pt": get_caption_words(self.data_file_path, lang="pt", categories=["people", "fauna", "flora"])[:word_list_limit]
+        "pt": get_caption_words(self.data_file_path, lang="pt", categories=["people", "fauna", "flora"])[:word_list_limit],
+      }
+      self.word_embeddings = {
+        "en": self.siglip.get_text_embedding(self.words["en"], prefix="painting with a"),
+        "pt": self.siglip.get_text_embedding(self.words["pt"], prefix="pintura mostrando"),
       }
 
     ids_to_avg = ids_by_distance[:, :num_images]
@@ -252,10 +257,12 @@ class Clusterer:
     descriptions = {"pt": [], "en": []}
 
     for cluster_avg in embeddings_avg:
-      img_tags_en = self.siglip.zero_shot(cluster_avg, self.words["en"])
-      img_tags_pt = self.siglip.zero_shot(cluster_avg, self.words["pt"], prefix="pintura mostrando")
-      descriptions["en"].append(img_tags_en[words_offset : max_words + words_offset])
-      descriptions["pt"].append(img_tags_pt[words_offset : max_words + words_offset])
+      tag_idxs_en = self.siglip.zero_shot(cluster_avg, self.word_embeddings["en"])
+      tag_idxs_pt = self.siglip.zero_shot(cluster_avg, self.word_embeddings["pt"])
+      tags_en = [self.words["en"][idx] for idx in tag_idxs_en]
+      tags_pt = [self.words["pt"][idx] for idx in tag_idxs_en]
+      descriptions["en"].append(tags_en[words_offset : max_words + words_offset])
+      descriptions["pt"].append(tags_pt[words_offset : max_words + words_offset])
 
     return descriptions
 

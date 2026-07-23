@@ -65,8 +65,8 @@ def pca_agglo(emb_raw, n_clusters=8, n_components=128):
   emb_reduced = mPCA.fit_transform(emb_raw)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
-  centroids = np.array([emb_reduced[emb_clusters == i].mean(axis=0) for i in range(n_clusters)])
-  return emb_reduced, emb_clusters, centroids
+  centers = np.array([emb_reduced[emb_clusters == i].mean(axis=0) for i in range(n_clusters)])
+  return emb_reduced, emb_clusters, centers
 
 
 def cluster_center_from_dists(known_points, known_dists):

@@ -39,7 +39,10 @@ class SigLip2:
 
     return img_embedding
 
-  def get_text_embedding(self, text):
+  def get_text_embedding(self, text, prefix=None):
+    text = [text] if type(text) == str else text
+    if prefix:
+      text = [f"{prefix} {t}" for t in text]
     txt_input = self.processor(text=text, padding="max_length", max_length=64, truncation=True, return_tensors="pt").to(SigLip2.DEVICE)
 
     with no_grad():
@@ -48,29 +51,28 @@ class SigLip2:
 
     return txt_embedding
 
-  def zero_shot(self, img, tags, prefix="painting with a"):
-    texts = [f"{prefix} {t}" for t in tags]
+  def zero_shot(self, img, tags):
+    txt_embeddings = tags
+    if type(tags[0]) == str:
+      txt_embeddings = self.get_text_embedding(tags)
 
     img_embedding = img
     if isinstance(img, PImage.Image):
       img_embedding = self.get_image_embedding(img)
 
-    txt_embeddings = self.get_text_embedding(texts)
-
     dists = cosine_distances(img_embedding.reshape(1, -1), txt_embeddings)
 
     tag_idxs_by_distance = dists[0].argsort()
-    return [tags[idx] for idx in tag_idxs_by_distance]
+    if type(tags[0]) == str:
+      return [tags[idx] for idx in tag_idxs_by_distance]
+    else:
+      return tag_idxs_by_distance
 
-  def shot_zero(self, embeddings, text):
-    text = [text] if type(text) == str else text
-    text = [f" {t}" for t in text]
-    txt_input = self.processor(text=text, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
-
-    with no_grad():
-      txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu()
-
-    dists = cosine_distances(txt_embedding, embeddings)
+  def shot_zero(self, embeddings, texts):
+    texts = [texts] if type(texts) == str else texts
+    texts = [f" {t}" for t in texts]
+    txt_embeddings = self.get_text_embedding(texts)
+    dists = cosine_distances(txt_embeddings, embeddings)
     return dists.argsort(axis=1)
 
   def get_gradient_activation_map(self, img, labels, *, img_idx=0, label_idx=None):
