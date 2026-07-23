@@ -5,56 +5,68 @@ from matplotlib import pyplot as plt
 from random import sample, seed
 
 from scipy.optimize import minimize
-from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import Normalizer
 
 from umap import UMAP
 
 from PIL import Image as PImage
 
-def raw_kmeans(emb_raw, n_clusters=8):
+def raw_kmeans(emb_raw, n_clusters=8, normalize=False):
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emp_pre = StandardScaler().fit_transform(emb_raw)
-  emb_clusters = mCluster.fit_predict(emp_pre)
+  emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
+  emb_clusters = mCluster.fit_predict(emb_pre)
 
-  return emb_raw, emb_clusters, mCluster.cluster_centers_
+  return emb_pre, emb_clusters, mCluster.cluster_centers_
 
 
-def pca_kmeans(emb_raw, n_clusters=8, n_components=128):
+def pca_kmeans(emb_raw, n_clusters=8, n_components=128, normalize=False):
   n_components = min(n_components, len(emb_raw))
   mPCA = PCA(n_components=n_components, random_state=10)
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_pre = StandardScaler().fit_transform(emb_raw)
+  emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
   emb_reduced = mPCA.fit_transform(emb_pre)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_
 
 
-def tsne_kmeans(emb_raw, n_clusters=8, n_components=3, perplexity=30):
+def tsne_kmeans(emb_raw, n_clusters=8, n_components=3, perplexity=30, normalize=False):
   mTSNE = TSNE(n_components=n_components, perplexity=perplexity, random_state=10)
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_pre = StandardScaler().fit_transform(emb_raw)
+  emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
   emb_reduced = mTSNE.fit_transform(emb_pre)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_
 
 
-def umap_kmeans(emb_raw, n_clusters=8, n_components=64, n_neighbors=100):
+def umap_kmeans(emb_raw, n_clusters=8, n_components=64, n_neighbors=100, normalize=False):
   mUMAP = UMAP(n_components=n_components, n_neighbors=n_neighbors, random_state=10, transform_seed=1010, metric="cosine")
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
-  emb_pre = StandardScaler().fit_transform(emb_raw)
+  emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
   emb_reduced = mUMAP.fit_transform(emb_pre)
   emb_clusters = mCluster.fit_predict(emb_reduced)
 
   return emb_reduced, emb_clusters, mCluster.cluster_centers_
+
+
+def pca_agglo(emb_raw, n_clusters=8, n_components=128):
+  n_components = min(n_components, len(emb_raw))
+  mPCA = PCA(n_components=n_components, random_state=10)
+  mCluster = AgglomerativeClustering(n_clusters=n_clusters, metric="euclidean", linkage="ward")
+
+  emb_reduced = mPCA.fit_transform(emb_raw)
+  emb_clusters = mCluster.fit_predict(emb_reduced)
+
+  centroids = np.array([emb_reduced[emb_clusters == i].mean(axis=0) for i in range(n_clusters)])
+  return emb_reduced, emb_clusters, centroids
 
 
 def cluster_center_from_dists(known_points, known_dists):

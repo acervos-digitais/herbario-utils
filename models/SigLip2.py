@@ -34,15 +34,17 @@ class SigLip2:
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)
 
     with no_grad():
-      my_embedding = self.model.get_image_features(**input).pooler_output.detach().cpu().squeeze()
+      img_embedding = self.model.get_image_features(**input).pooler_output.detach().cpu().squeeze()
+      img_embedding = F.normalize(img_embedding, p=2, dim=-1)
 
-    return my_embedding
+    return img_embedding
 
   def get_text_embedding(self, text):
     txt_input = self.processor(text=text, padding="max_length", max_length=64, truncation=True, return_tensors="pt").to(SigLip2.DEVICE)
 
     with no_grad():
       txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu().squeeze()
+      txt_embedding = F.normalize(txt_embedding, p=2, dim=-1)
 
     return txt_embedding
 
@@ -51,14 +53,11 @@ class SigLip2:
 
     img_embedding = img
     if isinstance(img, PImage.Image):
-      img_embedding = self.get_image_embedding(img).cpu()
+      img_embedding = self.get_image_embedding(img)
 
-    txt_input = self.processor(text=texts, padding="max_length", max_length=64, return_tensors="pt").to(SigLip2.DEVICE)
+    txt_embeddings = self.get_text_embedding(texts)
 
-    with no_grad():
-      txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu()
-
-    dists = cosine_distances(img_embedding.reshape(1, -1), txt_embedding)
+    dists = cosine_distances(img_embedding.reshape(1, -1), txt_embeddings)
 
     tag_idxs_by_distance = dists[0].argsort()
     return [tags[idx] for idx in tag_idxs_by_distance]

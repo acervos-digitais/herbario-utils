@@ -6,13 +6,13 @@ import PIL.Image as PImage
 from os import listdir, path
 from sklearn.metrics.pairwise import euclidean_distances
 
-from .cluster_utils import tsne_kmeans
+from .cluster_utils import pca_kmeans, raw_kmeans, tsne_kmeans, umap_kmeans
 from models.LlamaVision import LlamaVision
 from models.SigLip2 import SigLip2
 
 STOP_WORDS = {
-  "en": ["artist", "artists", "user", "users", "image", "images", "member", "members", "form", "forms", "subject", "subjects", "figure", "figures", "observer", "observers", "viewer", "viewers", "background", "apparition", "shoulder", "shoulders", "e-mail", "email", "generic"],
-  "pt": ["artista", "artistas", "usuário", "usuários", "imagem", "imagens", "membro", "membros", "formulários", "formulário", "hóspede", "hóspedes", "residente", "residentes", "estudioso", "estudiosos", "observador", "observadores", "figura", "figuras", "colono", "colonos", "caracteres", "subcrescimento", "sendo", "marfim", "assinatura", "pescoço", "ver", "vénus", "sketch", "ombro", "ombros", "e-mail", "email", "geral", "townfolk", "negro", "negros", "negra", "negras", "fotografa", "fotografas", "fotógrafa", "fotógrafas"]
+  "en": ["painting", "paintings", "artist", "artists", "user", "users", "image", "images", "member", "members", "form", "forms", "subject", "subjects", "figure", "figures", "observer", "observers", "viewer", "viewers", "background", "apparition", "shoulder", "shoulders", "e-mail", "email", "generic"],
+  "pt": ["pintura", "pinturas", "artista", "artistas", "usuário", "usuários", "imagem", "imagens", "membro", "membros", "formulários", "formulário", "hóspede", "hóspedes", "residente", "residentes", "estudioso", "estudiosos", "observador", "observadores", "figura", "figuras", "colono", "colonos", "caracteres", "subcrescimento", "sendo", "marfim", "assinatura", "pescoço", "ver", "vénus", "sketch", "ombro", "ombros", "e-mail", "email", "geral", "townfolk", "negro", "negros", "negra", "negras", "fotografa", "fotografas", "fotógrafa", "fotógrafas"]
 }
 
 REPLACE_WORDS = {
@@ -155,14 +155,41 @@ class Clusterer:
     self.embedding_data = embedding_data
     self.cluster_data = {}
 
-  def export_clusters(self, out_file_name, embedding_model="siglip2", min_nc=4, max_nc=17, step_nc=2, describe="all", **describe_params):
+  def export_clusters(self, out_file_name, embedding_model="siglip2", dim_red=None, min_nc=4, max_nc=17, step_nc=2, describe="all", **describe_params):
+    dim_red = "raw" if dim_red is None else dim_red.lower()
     ids = np.array(sorted(list(self.embedding_data.keys())))
     embeddings = np.array([self.embedding_data[id][embedding_model] for id in ids])
 
+    all_out_file_path = f"./metadata/json/{self.data_prefix}_{out_file_name}"
+    if path.isfile(all_out_file_path):
+      with open(all_out_file_path, "r", encoding="utf-8") as ifp:
+        self.cluster_data = { int(k):v for k,v in json.load(ifp).items() }
+
+    cluster_function = raw_kmeans
+    if dim_red == "pca":
+      cluster_function = pca_kmeans
+    elif dim_red == "tsne":
+      cluster_function = tsne_kmeans
+    elif dim_red == "umap":
+      cluster_function = umap_kmeans
+
     for nc in range(min_nc, max_nc, step_nc):
       print(nc, "clusters...")
-      embs, clusters, centers_np = tsne_kmeans(embeddings, n_clusters=nc)
-      cluster_distances = euclidean_distances(centers_np, embs)
+      nc_file_name = out_file_name.replace(".json", f"0{nc}"[-2:] + ".json")
+      nc_out_file_path = f"./metadata/json/{self.data_prefix}_{nc_file_name}"
+
+      if nc not in self.cluster_data:
+        self.cluster_data[nc] = {}
+
+      if path.isfile(nc_out_file_path):
+        with open(nc_out_file_path, "r", encoding="utf-8") as ifp:
+          self.cluster_data[nc] = json.load(ifp)
+
+      if dim_red in self.cluster_data[nc]:
+        continue
+
+      red_embs, clusters, centers_np = cluster_function(embeddings, n_clusters=nc, normalize=True)
+      cluster_distances = euclidean_distances(centers_np, red_embs)
       id_idxs_by_distance = cluster_distances.argsort(axis=1)
       ids_by_distance = ids[id_idxs_by_distance]
       centers = [[round(c,6) for c in center] for center in centers_np.tolist()]
@@ -179,18 +206,15 @@ class Clusterer:
           "siglip2": self.describe_by_siglip2(ids_by_distance, words_offset=2)
         }
 
-      self.cluster_data[nc] = {
+      self.cluster_data[nc][dim_red] = {
         "images": {id: {"cluster": c, "distances": [round(d,6) for d in ds]} for  id,c,ds in i_c_d},
-        "clusters": {"descriptions": descriptions}
+        "clusters": {"descriptions": descriptions, "centers": centers}
       }
 
-      nc_file_name = out_file_name.replace(".json", f"0{nc}"[-2:] + ".json")
-      out_file_path = f"./metadata/json/{self.data_prefix}_{nc_file_name}"
-      with open(out_file_path, "w", encoding="utf-8") as ofp:
-        json.dump({ int(nc): self.cluster_data[nc] }, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+      with open(nc_out_file_path, "w", encoding="utf-8") as ofp:
+        json.dump(self.cluster_data[nc], ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
-    out_file_path = f"./metadata/json/{self.data_prefix}_{out_file_name}"
-    with open(out_file_path, "w", encoding="utf-8") as ofp:
+    with open(all_out_file_path, "w", encoding="utf-8") as ofp:
       json.dump(self.cluster_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
 
