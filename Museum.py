@@ -27,7 +27,7 @@ class Museum:
       "imgs": f"../../imgs/arts"
     }
 
-    for d in ["captions", "colors", "embeddings", "objects"]:
+    for d in ["activations", "captions", "colors", "embeddings", "objects"]:
       cls.DIRS[d] = path.join(cls.DIRS["data"], d)
 
     cls.IMGS = {}
@@ -259,6 +259,45 @@ class Museum:
 
       with open(caption_path, "w", encoding="utf-8") as ofp:
         json.dump(cap_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
+
+  @classmethod
+  def get_activations(cls, museum_info, clustering_data):
+    cls.prep_dirs(museum_info)
+    makedirs(cls.DIRS["activations"], exist_ok=True)
+
+    museum_data = cls.read_data()
+
+    qids = sorted(list(museum_data.keys()))
+    print(len(qids), "images")
+
+    if not hasattr(cls, "model"):
+      cls.model = SigLip2()
+
+    descriptions = clustering_data["clusters"]["descriptions"]["gemma3"]["en"]
+
+    for cnt,qid in enumerate(qids):
+      if cnt % 100 == 0:
+        print(cnt, "/", len(qids))
+
+      img_path = path.join(cls.IMGS["500"], f"{qid}.jpg")
+      activation_path = path.join(cls.DIRS["activations"], f"{qid}.json")
+
+      if (not path.isfile(img_path)) or path.isfile(activation_path):
+        continue
+
+      image = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
+
+      cc = clustering_data["images"][qid]["cluster"]
+      labels = descriptions[cc][:3]
+
+      activation_np = cls.model.get_gradient_activation_map(image, labels)
+
+      activation_data = {
+        qid: ((1e6 * activation_np).astype(int).astype(float) / 1e6).tolist()
+      }
+
+      with open(activation_path, "w", encoding="utf-8") as ofp:
+        json.dump(activation_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
   def combine_data(cls, museum_info):
