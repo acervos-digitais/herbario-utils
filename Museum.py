@@ -326,11 +326,12 @@ class Museum:
             data = json.load(ifp)
             museum_data[qid] |= data[qid]
 
-      cap_fname = path.join(cls.DIRS["captions"], f"{qid}.json")
-      if path.isfile(cap_fname):
-        with open(cap_fname, "r", encoding="utf-8") as ifp:
-          data = json.load(ifp)
-          museum_data[qid]["captions"] = data[qid]
+      for d in ["captions"]:
+        info_fname = path.join(cls.DIRS[d], f"{qid}.json")
+        if path.isfile(info_fname):
+          with open(info_fname, "r", encoding="utf-8") as ifp:
+            data = json.load(ifp)
+            museum_data[qid][d] = data[qid]
 
       emb_fname = path.join(cls.DIRS["embeddings"], f"{qid}.json")
       if path.isfile(emb_fname):
