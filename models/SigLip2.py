@@ -125,8 +125,8 @@ class SigLip2:
       patch_weights = patch_grads[img_idx].mean(dim=0)
 
       cam = (patch_weights * patch_features[img_idx]).sum(dim=-1)
-      cam = relu(cam)
-      label_activations.append(cam.detach().cpu().numpy())
+      cam = relu(cam).detach().cpu().numpy()
+      label_activations.append(SigLip2.scaleMinMax(cam))
 
-    cam01 = SigLip2.scaleMinMax(np.array(label_activations).mean(axis=0))
+    cam01 = SigLip2.scaleMinMax(np.array(label_activations).sum(axis=0))
     return cam01.reshape(self.model_grid_size, self.model_grid_size)
