@@ -5,15 +5,13 @@ from warnings import simplefilter
 simplefilter(action="ignore")
 
 class Owlv2:
-  OBJ_TARGET_SIZE = tensor([500.0, 500.0]).float()
   MODEL_NAME = "google/owlv2-base-patch16"
   DEVICE = "cuda" if cuda.is_available() else "cpu"
 
   @classmethod
   def px_to_pct(cls, box, img_w, img_h):
-    scale_factor = tensor([max(img_w, img_h) / img_w , max(img_w, img_h) / img_h])
-    img_dims = cls.OBJ_TARGET_SIZE / scale_factor
-    return [round(x, 4) for x in (box.cpu().reshape(2, -1) / img_dims).reshape(-1).tolist()]
+    scale_factor = tensor([img_w, img_h])
+    return [round(x, 4) for x in (box.cpu().reshape(2, -1) / scale_factor).reshape(-1).tolist()]
 
   @classmethod
   # filter if box "too large" or "too small"
@@ -23,7 +21,7 @@ class Owlv2:
     box_height = box_pct[3] - box_pct[1]
     good_min = box_width > 0.05 and box_height > 0.05
     good_max = box_width < 0.8 or box_height < 0.8
-    return good_min and good_max and score > tholds[label.item()]
+    return good_min and good_max and score > tholds[label]
 
   @classmethod
   def iou(cls, boxA, boxB, return_areas=False):
@@ -114,15 +112,18 @@ class Owlv2:
     self.model = Owlv2ForObjectDetection.from_pretrained(model_name).to(Owlv2.DEVICE)
 
   def run_object_detection(self, img, labels, tholds):
-    input = self.processor(text=labels, images=img, return_tensors="pt").to(Owlv2.DEVICE)
+    inputs = self.processor(text=labels, images=img, return_tensors="pt").to(Owlv2.DEVICE)
     with no_grad():
-      obj_out = self.model(**input)
+      outputs = self.model(**inputs)
 
-    res = self.processor.post_process_object_detection(outputs=obj_out, target_sizes=[Owlv2.OBJ_TARGET_SIZE])
+    res = self.processor.post_process_grounded_object_detection(outputs=outputs, target_sizes=[img.size[::-1]])
+    res[0]["scores"] = res[0]["scores"].tolist()
+    res[0]["labels"] = res[0]["labels"].tolist()
+
     slbs = zip(res[0]["scores"], res[0]["labels"], res[0]["boxes"])
     iw, ih = img.size
 
-    detected_objs = [{"score": round(s.item(), 3), "label": labels[l.item()], "box": Owlv2.px_to_pct(b, iw, ih)}
+    detected_objs = [{"score": round(s, 3), "label": labels[l], "box": Owlv2.px_to_pct(b, iw, ih)}
                      for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih)]
     return detected_objs
 
@@ -142,14 +143,13 @@ class Owlv2:
     return ioud_objs
 
   def get_objectness_boxes(self, img, topk=8):
-    tsize = [img.size[::-1]]
-    input = self.processor(images=img, text="", return_tensors="pt").to(Owlv2.DEVICE)
+    inputs = self.processor(images=img, text="", return_tensors="pt").to(Owlv2.DEVICE)
     with no_grad():
-      output = self.model(**input)
+      outputs = self.model(**inputs)
 
-    objectnesses = output["objectness_logits"].squeeze()
+    objectnesses = outputs["objectness_logits"].squeeze()
     objectness_idxs = sort(objectnesses)[1][-topk:].tolist()
-    pred_boxes = self.processor.post_process_object_detection(outputs=output, target_sizes=tsize, threshold=0)[0]["boxes"]
+    pred_boxes = self.processor.post_process_grounded_object_detection(outputs=output, target_sizes=[img.size[::-1]], threshold=0)[0]["boxes"]
 
     crop_boxes = [[int(i) for i in pred_boxes[idx].tolist()] for idx in objectness_idxs]
     return crop_boxes
