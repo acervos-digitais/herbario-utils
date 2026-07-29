@@ -2,11 +2,16 @@ from torch import cuda, no_grad, sort, tensor
 from transformers import Owlv2Processor, Owlv2ForObjectDetection, Owlv2Model
 from warnings import simplefilter
 
+from params.detect import Owlv2Objects as OObs
+
 simplefilter(action="ignore")
 
 class Owlv2:
   MODEL_NAME = "google/owlv2-base-patch16"
   DEVICE = "cuda" if cuda.is_available() else "cpu"
+  OBJS_LABELS_IN = [sorted(o.keys()) for o in OObs.OBJECTS]
+  OBJS_LABELS_OUT = [[OObs.OBJECT2LABEL.get(l, l) for l in oli] for oli in OBJS_LABELS_IN]
+  OBJS_THOLDS = [[OObs.OBJECTS[i][k] for k in oli] for i,oli in enumerate(OBJS_LABELS_IN)]
 
   @classmethod
   def px_to_pct(cls, box, img_w, img_h):
@@ -15,12 +20,12 @@ class Owlv2:
 
   @classmethod
   # filter if box "too large" or "too small"
-  def threshold(cls, score, label, box, tholds, img_w, img_h):
+  def threshold(cls, score, label, box, tholds, img_w, img_h, min_d=0.05, max_d=0.8):
     box_pct = cls.px_to_pct(box, img_w, img_h)
     box_width = box_pct[2] - box_pct[0]
     box_height = box_pct[3] - box_pct[1]
-    good_min = box_width > 0.05 and box_height > 0.05
-    good_max = box_width < 0.8 or box_height < 0.8
+    good_min = box_width > min_d and box_height > min_d
+    good_max = box_width < max_d or box_height < max_d
     return good_min and good_max and score > tholds[label]
 
   @classmethod
@@ -32,15 +37,17 @@ class Owlv2:
     yB = min(boxA[3], boxB[3])
 
     # compute the area of intersection rectangle
-    intersection = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    intersection = max(0, xB - xA) * max(0, yB - yA)
 
     # compute the area of both rectangles
-    areaA = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-    areaB = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+    areaA = (boxA[2] - boxA[0]) * (boxA[3] - boxA[1])
+    areaB = (boxB[2] - boxB[0]) * (boxB[3] - boxB[1])
+
+    union = areaA + areaB - intersection
 
     # compute the intersection over union:
     # union is sum of both areas minus intersection
-    iou = intersection / float(areaA + areaB - intersection)
+    iou = intersection / union if union > 0 else 0
 
     if return_areas:
       return iou, intersection, areaA, areaB
@@ -139,7 +146,7 @@ class Owlv2:
 
   def iou_objects(self, img, labels, tholds):
     detected_objs = self.run_object_detection(img, labels, tholds)
-    ioud_objs = self.filter_by_iou(detected_objs, iou_thold=0.8)
+    ioud_objs = self.filter_by_iou(detected_objs, iou_thold=0.55)
     return ioud_objs
 
   def get_objectness_boxes(self, img, topk=8):

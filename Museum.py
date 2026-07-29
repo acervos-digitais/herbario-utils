@@ -17,7 +17,6 @@ from models.LlamaVision import LlamaVision
 from models.Owlv2 import Owlv2
 from models.SigLip2 import SigLip2
 
-from params.detect import OBJS_LABELS_IN as OBJS_LABELS, OBJS_THOLDS
 
 class Museum:
   @classmethod
@@ -203,7 +202,7 @@ class Museum:
       image = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
 
       image_boxes = []
-      for labels,tholds in zip(OBJS_LABELS, OBJS_THOLDS):
+      for labels,tholds in zip(cls.owl.OBJS_LABELS_IN, cls.owl.OBJS_THOLDS):
         image_boxes += cls.owl.iou_objects(image, labels, tholds)
 
       object_data = { qid: { "objects": image_boxes}}
