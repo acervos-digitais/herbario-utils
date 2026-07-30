@@ -146,7 +146,7 @@ class Owlv2:
 
   def iou_objects(self, img, labels, tholds):
     detected_objs = self.run_object_detection(img, labels, tholds)
-    ioud_objs = self.filter_by_iou(detected_objs, iou_thold=0.55)
+    ioud_objs = self.filter_by_iou(detected_objs, iou_thold=0.55, iou_per_label=True)
     return ioud_objs
 
   def get_objectness_boxes(self, img, topk=8):

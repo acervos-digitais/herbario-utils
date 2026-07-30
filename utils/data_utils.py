@@ -4,7 +4,9 @@ import numpy as np
 import PIL.Image as PImage
 
 from os import listdir, path
+from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_distances, euclidean_distances
+from sklearn.preprocessing import Normalizer
 
 from .cluster_utils import pca_kmeans, raw_kmeans, tsne_kmeans, umap_kmeans
 from models.LlamaVision import LlamaVision
@@ -268,20 +270,23 @@ class Clusterer:
 
 
 def get_tsne_embeddings(embedding_data, with_3d=False):
-  ids = embedding_data.keys()
-  raw_embs = []
+  ids = sorted(list(embedding_data.keys()))
 
-  for id in ids:
-    raw_embs.append(embedding_data[id]["siglip2"])
+  raw_embs = np.array([embedding_data[i]["siglip2"] for i in ids])
+  norm_embs = Normalizer().fit_transform(raw_embs)
 
-  tsne2_vals, _, _ = tsne_kmeans(raw_embs, n_clusters=8, n_components=2)
+  mTSNE = TSNE(n_components=2, perplexity=30, random_state=1010)
+  tsne2_vals = mTSNE.fit_transform(norm_embs)
+
   tsne2_min = tsne2_vals.min(axis=0)
   tsne2_max = tsne2_vals.max(axis=0)
   tsne2_norm = (tsne2_vals - tsne2_min) / (tsne2_max - tsne2_min)
 
   tsne3_norm = tsne2_norm
   if with_3d:
-    tsne3_vals, _, _ = tsne_kmeans(raw_embs, n_clusters=8, n_components=3)
+    mTSNE = TSNE(n_components=3, perplexity=30, random_state=101010)
+    tsne3_vals = mTSNE.fit_transform(norm_embs)
+
     tsne3_min = tsne3_vals.min(axis=0)
     tsne3_max = tsne3_vals.max(axis=0)
     tsne3_norm = (tsne3_vals - tsne3_min) / (tsne3_max - tsne3_min)

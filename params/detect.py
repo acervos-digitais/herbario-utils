@@ -26,6 +26,7 @@ class Owlv2Objects:
   OBJECTS_PEOPLE = {
     "human face": 0.15,
     "human hand": 0.15,
+    "human foot": 0.15,
     "naked human back": 0.20,
     "naked human breast": 0.20,
     "naked human buttocks": 0.20,
@@ -60,6 +61,7 @@ class Owlv2Objects:
 
     "human face": "face",
     "human hand": "hand",
+    "human foot": "foot",
     "naked human back": "back",
     "naked human breast": "breast",
     "naked human buttocks": "butt",
@@ -69,27 +71,25 @@ class Owlv2Objects:
 
 class DinoObjects:
   OBJECTS_FAUNA = {
-    "bird": 0.25,
-    "dog": 0.25,
-    "horse": 0.25,
-    "ox": 0.25,
-    "painting of human": 0.20,
+    "bird": 0.20,
+    "dog": 0.20,
+    "horse": 0.20,
+    "ox": 0.22,
+    "human": 0.20,
   }
 
   OBJECTS_FLORA = {
     "bush": 0.15,
     "flower": 0.12,
     "fruit": 0.15,
-    "grass": 0.15,
-    "greenery": 0.15,
-    "shrub": 0.15,
-    "tree": 0.15,
-    "vegetation": 0.15,
+    "grass": 0.12,
+    "shrub": 0.12,
+    "tree": 0.12,
   }
 
   OBJECTS_TREES = {
-    "conifer": 0.21,
-    "palm tree": 0.15,
+    "conifer": 0.15,
+    "palm tree": 0.12,
   }
 
   OBJECTS_PEOPLE = {
@@ -114,10 +114,8 @@ class DinoObjects:
     "flower": "flora",
     "fruit": "flora",
     "grass": "flora",
-    "greenery": "flora",
     "shrub": "flora",
     "tree": "flora",
-    "vegetation": "flora",
 
     "conifer": "flora",
     "palm tree": "flora",
@@ -126,10 +124,11 @@ class DinoObjects:
     "dog": "fauna",
     "horse": "fauna",
     "ox": "fauna",
-    "painting of human": "person",
+    "human": "person",
 
     "human face": "face",
     "human hand": "hand",
+    "human foot": "foot",
     "naked human back": "back",
     "naked human breast": "breast",
     "naked human buttocks": "butt",

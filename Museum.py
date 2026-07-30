@@ -12,6 +12,7 @@ from utils.data_utils import get_tsne_embeddings
 from utils.date_utils import get_year
 
 from models.CLIP import Clip
+from models.Dino import Dino
 from models.EnPt import EnPt, PtEn, PartOfSpeech
 from models.LlamaVision import LlamaVision
 from models.Owlv2 import Owlv2
@@ -144,11 +145,11 @@ class Museum:
     qids = sorted(list(museum_data.keys()))
     print(len(qids), "images")
 
-    if not hasattr(cls, "model"):
+    if not hasattr(cls, "emodel"):
       if model == "clip":
-        cls.model = Clip()
+        cls.emodel = Clip()
       elif model == "siglip2":
-        cls.model = SigLip2()
+        cls.emodel = SigLip2()
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
@@ -169,7 +170,7 @@ class Museum:
         continue
 
       img = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
-      img_embedding = [round(v, 8) for v in cls.model.get_image_embedding(img).tolist()]
+      img_embedding = [round(v, 8) for v in cls.emodel.get_image_embedding(img).tolist()]
 
       embedding_data[qid][model] = img_embedding
 
@@ -177,7 +178,7 @@ class Museum:
         json.dump(embedding_data, ofp, sort_keys=True, separators=(",",":"), ensure_ascii=False)
 
   @classmethod
-  def get_objects(cls, museum_info):
+  def get_objects(cls, museum_info, model="owlv2"):
     cls.prep_dirs(museum_info)
     makedirs(cls.DIRS["objects"], exist_ok=True)
 
@@ -186,8 +187,11 @@ class Museum:
     qids = sorted(list(museum_data.keys()))
     print(len(qids), "images")
 
-    if not hasattr(cls, "owl"):
-      cls.owl = Owlv2("google/owlv2-base-patch16")
+    if not hasattr(cls, "omodel"):
+      if model == "owlv2":
+        cls.omodel = Owlv2("google/owlv2-base-patch16")
+      elif model == "dino":
+        cls.omodel = Dino("IDEA-Research/grounding-dino-base")
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
@@ -196,16 +200,32 @@ class Museum:
       img_path = path.join(cls.IMGS["900"], f"{qid}.jpg")
       object_path = path.join(cls.DIRS["objects"], f"{qid}.json")
 
-      if (not path.isfile(img_path)) or path.isfile(object_path):
+      if (not path.isfile(img_path)):
+        continue
+
+      object_data = { qid: { } }
+      if path.isfile(object_path):
+        with open(object_path, "r", encoding="utf-8") as ifp:
+          object_data = json.load(ifp)
+
+      if model in object_data[qid]:
         continue
 
       image = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
 
-      image_boxes = []
-      for labels,tholds in zip(cls.owl.OBJS_LABELS_IN, cls.owl.OBJS_THOLDS):
-        image_boxes += cls.owl.iou_objects(image, labels, tholds)
+      model_objects = []
+      for labels,tholds in zip(cls.omodel.OBJS_LABELS_IN, cls.omodel.OBJS_THOLDS):
+        model_objects += cls.omodel.iou_objects(image, labels, tholds)
 
-      object_data = { qid: { "objects": image_boxes}}
+      object_data[qid][model] = model_objects
+
+      # combine all models
+      all_objects = []
+      for objs in object_data[qid].values():
+        all_objects += objs
+
+      all_objects_ioud = cls.omodel.filter_by_iou(all_objects, iou_thold=0.55, iou_per_label=True)
+      object_data[qid]["all"] = all_objects_ioud
 
       with open(object_path, "w", encoding="utf-8") as of:
         json.dump(object_data, of, sort_keys=True, separators=(",",":"), ensure_ascii=False)
@@ -269,8 +289,8 @@ class Museum:
     qids = sorted(list(museum_data.keys()))
     print(len(qids), "images")
 
-    if not hasattr(cls, "model"):
-      cls.model = SigLip2()
+    if not hasattr(cls, "amodel"):
+      cls.amodel = SigLip2()
 
     descriptions = clustering_data["clusters"]["descriptions"]["gemma3"]["en"]
 
@@ -289,7 +309,7 @@ class Museum:
       cc = clustering_data["images"][qid]["cluster"]
       labels = descriptions[cc][:3]
 
-      activation_np = cls.model.get_gradient_activation_map(image, labels)
+      activation_np = cls.amodel.get_gradient_activation_map(image, labels)
 
       activation_data = {
         qid: ((1e6 * activation_np).astype(int).astype(float) / 1e6).tolist()
@@ -304,6 +324,7 @@ class Museum:
 
     museum_data = cls.read_data()
     embed_data = {}
+    act_data = {}
 
     qids = sorted(list(museum_data.keys()))
 
@@ -318,14 +339,14 @@ class Museum:
         del museum_data[qid]
         continue
 
-      for d in ["colors", "objects"]:
+      for d in ["colors"]:
         info_fname = path.join(cls.DIRS[d], f"{qid}.json")
         if path.isfile(info_fname):
           with open(info_fname, "r", encoding="utf-8") as ifp:
             data = json.load(ifp)
             museum_data[qid] |= data[qid]
 
-      for d in ["captions"]:
+      for d in ["captions", "objects"]:
         info_fname = path.join(cls.DIRS[d], f"{qid}.json")
         if path.isfile(info_fname):
           with open(info_fname, "r", encoding="utf-8") as ifp:
@@ -338,14 +359,24 @@ class Museum:
           data = json.load(ifp)
           embed_data[qid] = data[qid]
 
+      act_fname = path.join(cls.DIRS["activations"], f"{qid}.json")
+      if path.isfile(act_fname):
+        with open(act_fname, "r", encoding="utf-8") as ifp:
+          data = json.load(ifp)
+          act_data[qid] = data[qid]
+
     processed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_processed.json")
     embed_path = path.join(cls.DIRS["data"], museum_info["file"] + "_embeddings.json")
+    activ_path = path.join(Museum.DIRS["data"], museum_info["file"] + "_activations.json")
 
     with open(processed_path, "w", encoding="utf-8") as ofp:
       json.dump(museum_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
     with open(embed_path, "w", encoding="utf-8") as ofp:
       json.dump(embed_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
+
+    with open(activ_path, "w", encoding="utf-8") as ofp:
+      json.dump(act_data, ofp, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
   @classmethod
   def combine_all_data(cls, all_museums, data_type):
@@ -407,10 +438,13 @@ class Museum:
     makedirs(img_path_crops, exist_ok=True)
 
     obj_files = sorted([f for f in listdir(cls.DIRS["objects"]) if f.endswith(".json")])
-    for fname in obj_files:
+    for cnt,fname in enumerate(obj_files):
+      if cnt % 100 == 0:
+        print(cnt, "/", len(obj_files))
+
       qid = fname.replace(".json", "")
       with open(path.join(cls.DIRS["objects"], fname), "r", encoding="utf-8") as inp:
-        iboxes = json.load(inp)[qid]["objects"]
+        iboxes = json.load(inp)[qid]["all"]
 
       if len(iboxes) < 1:
         continue
