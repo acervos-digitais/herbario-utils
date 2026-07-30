@@ -40,97 +40,203 @@ class Owlv2Objects:
     OBJECTS_PEOPLE,
   ]
 
-  OBJECT2LABEL = {
-    "bush": "flora",
-    "flower": "flora",
-    "fruit": "flora",
-    "grass": "flora",
-    "greenery": "flora",
-    "shrub": "flora",
-    "tree": "flora",
-    "vegetation": "flora",
-
-    "conifer": "flora",
-    "palm tree": "flora",
-
-    "bird": "fauna",
-    "dog": "fauna",
-    "horse": "fauna",
-    "ox": "fauna",
-    "painting of human": "person",
-
-    "human face": "face",
-    "human hand": "hand",
-    "human foot": "foot",
-    "naked human back": "back",
-    "naked human breast": "breast",
-    "naked human buttocks": "butt",
-    "naked human torso": "torso",
-  }
-
 
 class DinoObjects:
-  OBJECTS_FAUNA = {
-    "bird": 0.20,
-    "dog": 0.20,
-    "horse": 0.20,
-    "ox": 0.22,
-    "human": 0.20,
-  }
+  OBJECTS = {
+    "bird": {
+      "terms": [
+        "bird",
+        "fowl",
+        "flying bird",
+        "perched bird",
+        "waterfowl",
+        "game bird",
+      ],
+      "threshold": 0.2,
+    },
 
-  OBJECTS_FLORA = {
-    "bush": 0.15,
-    "flower": 0.12,
-    "fruit": 0.15,
-    "grass": 0.12,
-    "shrub": 0.12,
-    "tree": 0.12,
-  }
+    "dog": {
+      "terms": [
+        "dog",
+        "canine",
+        "hound",
+        "puppy",
+        "mongrel",
+        "domestic dog",
+      ],
+      "threshold": 0.20,
+    },
 
-  OBJECTS_TREES = {
-    "conifer": 0.15,
-    "palm tree": 0.12,
-  }
+    "horse": {
+      "terms": [
+        "horse",
+        "equine",
+        "steed",
+        "stallion",
+        "mare",
+        "pony",
+      ],
+      "threshold": 0.20,
+    },
 
-  OBJECTS_PEOPLE = {
-    "human face": 0.2,
-    "human hand": 0.2,
-    "human foot": 0.2,
-    "naked human back": 0.25,
-    "naked human breast": 0.20,
-    "naked human buttocks": 0.32,
-    "naked human torso": 0.3,
-  }
+    "ox": {
+      "terms": [
+        "ox",
+        "oxen",
+        "bovine",
+        "cattle",
+        "bull",
+        "cow",
+        "draft animal",
+      ],
+      "threshold": 0.20,
+    },
 
-  OBJECTS = [
-    OBJECTS_FAUNA,
-    OBJECTS_FLORA,
-    OBJECTS_TREES,
-    OBJECTS_PEOPLE,
-  ]
+    "human": {
+      "terms": [
+        "person",
+        "human",
+        "man",
+        "woman",
+        "child",
+        "people",
+        "human figure",
+      ],
+      "threshold": 0.20,
+    },
 
-  OBJECT2LABEL = {
-    "bush": "flora",
-    "flower": "flora",
-    "fruit": "flora",
-    "grass": "flora",
-    "shrub": "flora",
-    "tree": "flora",
+    "tree": {
+      "terms": [
+        "tree",
+        "tree trunk",
+        "foliage",
+        "plant",
+        "grove",
+        "oak tree",
+      ],
+      "threshold": 0.20,
+    },
 
-    "conifer": "flora",
-    "palm tree": "flora",
+    "palm tree": {
+      "terms": [
+        "palm tree",
+        "palm",
+        "palm trees",
+        "date palm",
+        "tropical tree",
+        "coconut palm",
+        "palm grove"
+      ],
+      "threshold": 0.20,
+    },
 
-    "bird": "fauna",
-    "dog": "fauna",
-    "horse": "fauna",
-    "ox": "fauna",
-    "human": "person",
+    "conifer": {
+      "terms": [
+        "conifer",
+        "pine tree",
+        "pine",
+        "evergreen tree",
+        "fir tree",
+        "spruce tree",
+      ],
+      "threshold": 0.20,
+    },
 
-    "human face": "face",
-    "human hand": "hand",
-    "human foot": "foot",
-    "naked human back": "back",
-    "naked human breast": "breast",
-    "naked human buttocks": "butt",
-    "naked human torso": "torso",
+    "flower": {
+      "terms": [
+        "flower",
+        "flowers",
+        "wildflower",
+        "blossom",
+        "bloom",
+        "floral",
+        "bouquet",
+        "floral arrangement",
+      ],
+      "threshold": 0.20,
+    },
+
+    "fruits": {
+      "terms": [
+        "fruit",
+        "fruits",
+        "produce",
+        "fresh fruit",
+        "fruit basket",
+        "apple",
+        "pear",
+        "citrus",
+      ],
+      "threshold": 0.20,
+    },
+
+    "shrubbery": {
+      "terms": [
+        "shrub",
+        "shrubbery",
+        "bush",
+        "bushes",
+        "hedge",
+        "thicket",
+      ],
+      "threshold": 0.20,
+    },
+
+    "face": {
+      "terms": [
+        "face",
+        "human face",
+        "facial features",
+        "mask",
+        "face mask",
+        "masquerade mask",
+      ],
+      "threshold": 0.20,
+    },
+
+    "hand": {
+      "terms": [
+        "hand",
+        "hands",
+         "human hand",
+         "fingers",
+         "palm",
+         "glove",
+         "gloves"
+      ],
+      "threshold": 0.20,
+    },
+
+    "foot": {
+      "terms": [
+        "foot",
+        "feet",
+        "human foot",
+        "shoe",
+        "footwear",
+        "boot",
+      ],
+      "threshold": 0.20,
+    },
+
+    "torso": {
+      "terms": [
+        "exposed torso",
+        "bare torso",
+        "naked chest",
+        "bare chest",
+        "naked torso",
+      ],
+      "threshold": 0.30,
+    },
+
+    "back": {
+      "terms": [
+        "bare back",
+        "exposed back",
+        "naked back",
+        "exposed shoulders",
+      ],
+      "threshold": 0.30,
+    },
   }

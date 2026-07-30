@@ -9,9 +9,8 @@ simplefilter(action="ignore")
 class Owlv2:
   MODEL_NAME = "google/owlv2-base-patch16"
   DEVICE = "cuda" if cuda.is_available() else "cpu"
-  OBJS_LABELS_IN = [sorted(o.keys()) for o in OObs.OBJECTS]
-  OBJS_LABELS_OUT = [[OObs.OBJECT2LABEL.get(l, l) for l in oli] for oli in OBJS_LABELS_IN]
-  OBJS_THOLDS = [[OObs.OBJECTS[i][k] for k in oli] for i,oli in enumerate(OBJS_LABELS_IN)]
+  OBJECT_LABELS_IN = [sorted(o.keys()) for o in OObs.OBJECTS]
+  OBJECT_THOLDS = [[OObs.OBJECTS[i][k] for k in oli] for i,oli in enumerate(OBJECT_LABELS_IN)]
 
   @classmethod
   def px_to_pct(cls, box, img_w, img_h):
@@ -130,8 +129,14 @@ class Owlv2:
     slbs = zip(res[0]["scores"], res[0]["labels"], res[0]["boxes"])
     iw, ih = img.size
 
-    detected_objs = [{"score": round(s, 3), "label": labels[l], "box": Owlv2.px_to_pct(b, iw, ih)}
-                     for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih)]
+    detected_objs = [
+      {
+        "score": round(s, 3),
+        "label": labels[l],
+        "box": Owlv2.px_to_pct(b, iw, ih)
+      }
+      for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih)
+    ]
     return detected_objs
 
   def top_objects(self, img, labels, tholds):
@@ -144,9 +149,22 @@ class Owlv2:
     detected_objs = self.run_object_detection(img, labels, tholds)
     return detected_objs
 
-  def iou_objects(self, img, labels, tholds):
+  def iou_objects(self, img, labels, tholds, iou_per_label=True):
     detected_objs = self.run_object_detection(img, labels, tholds)
-    ioud_objs = self.filter_by_iou(detected_objs, iou_thold=0.55, iou_per_label=True)
+    ioud_objs = self.filter_by_iou(detected_objs, iou_thold=0.55, iou_per_label=iou_per_label)
+    return ioud_objs
+
+  def combined_label_objects(self, img, labels, tholds, combined_label):
+    detected_objs = self.run_object_detection(img, labels, tholds)
+    detected_objs_labeled = [
+      {
+        "score": o["score"],
+        "label": combined_label,
+        "box": o["box"]
+      }
+      for o in detected_objs
+    ]
+    ioud_objs = self.filter_by_iou(detected_objs_labeled, iou_thold=0.55)
     return ioud_objs
 
   def get_objectness_boxes(self, img, topk=8):

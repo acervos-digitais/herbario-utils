@@ -9,9 +9,9 @@ simplefilter(action="ignore")
 
 class Dino(Owlv2):
   MODEL_NAME = "IDEA-Research/grounding-dino-base"
-  OBJS_LABELS_IN = [sorted(o.keys()) for o in DObs.OBJECTS]
-  OBJS_LABELS_OUT = [[DObs.OBJECT2LABEL.get(l, l) for l in oli] for oli in OBJS_LABELS_IN]
-  OBJS_THOLDS = [[DObs.OBJECTS[i][k] for k in oli] for i,oli in enumerate(OBJS_LABELS_IN)]
+  OBJECT_LABELS_OUT = sorted(list(DObs.OBJECTS.keys()))
+  OBJECT_LABELS_IN = [DObs.OBJECTS[l]["terms"] for l in OBJECT_LABELS_OUT]
+  OBJECT_THOLDS = [[DObs.OBJECTS[l]["threshold"] for t in DObs.OBJECTS[l]["terms"]] for l in OBJECT_LABELS_OUT]
 
   def __init__(self, model=None):
     model_name = Dino.MODEL_NAME if model is None else model
@@ -39,6 +39,12 @@ class Dino(Owlv2):
     slbs = zip(res[0]["scores"], res[0]["labels"], res[0]["boxes"])
     iw, ih = img.size
 
-    detected_objs = [{"score": round(s, 3), "label": labels[l], "box": Owlv2.px_to_pct(b, iw, ih)}
-                     for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih, min_d=0.02)]
+    detected_objs = [
+      {
+        "score": round(s, 3),
+        "label": labels[l],
+        "box": Owlv2.px_to_pct(b, iw, ih)
+      }
+      for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih, min_d=0.02)
+    ]
     return detected_objs
