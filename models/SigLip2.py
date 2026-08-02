@@ -29,6 +29,8 @@ class SigLip2:
       self.model.config.vision_config.image_size //
       self.model.config.vision_config.patch_size
     )
+    self.model_scale = self.model.logit_scale.exp().detach().cpu()
+    self.model_bias = self.model.logit_bias.detach().cpu()
 
   def get_image_embedding(self, img):
     input = self.processor(images=img, return_tensors="pt").to(SigLip2.DEVICE)
@@ -51,27 +53,31 @@ class SigLip2:
 
     return txt_embedding
 
-  def zero_shot(self, img, tags):
-    txt_embeddings = tags
-    if type(tags[0]) == str:
-      txt_embeddings = self.get_text_embedding(tags)
+  def get_logits(self, img, labels, prefix=None):
+    txt_embeddings = labels
+    if type(labels[0]) == str:
+      txt_embeddings = self.get_text_embedding(labels, prefix=prefix)
 
     img_embedding = img
     if isinstance(img, PImage.Image):
       img_embedding = self.get_image_embedding(img)
 
-    dists = cosine_distances(img_embedding.reshape(1, -1), txt_embeddings)
+    logits = self.model_scale * (img_embedding @ txt_embeddings.T) + self.model_bias
+    return logits.cpu().squeeze().numpy()
 
-    tag_idxs_by_distance = dists[0].argsort()
-    if type(tags[0]) == str:
-      return [tags[idx] for idx in tag_idxs_by_distance]
+  def zero_shot(self, img, labels, prefix=None):
+    logits = self.get_logits(img, labels, prefix=prefix)
+    label_idxs_by_similarity = (-logits).argsort()
+
+    if type(labels[0]) == str:
+      return [labels[idx] for idx in label_idxs_by_similarity]
     else:
-      return tag_idxs_by_distance
+      return label_idxs_by_similarity
 
-  def shot_zero(self, embeddings, texts):
+  def shot_zero(self, embeddings, texts, prefix=None):
     texts = [texts] if type(texts) == str else texts
     texts = [f" {t}" for t in texts]
-    txt_embeddings = self.get_text_embedding(texts)
+    txt_embeddings = self.get_text_embedding(texts, prefix=prefix)
     dists = cosine_distances(txt_embeddings, embeddings)
     return dists.argsort(axis=1)
 

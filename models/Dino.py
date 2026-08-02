@@ -1,50 +1,36 @@
-from torch import no_grad
 from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
 from warnings import simplefilter
 
-from .Owlv2 import Owlv2
-from params.detect import DinoObjects as DObs
+from .ObjectDetector import ObjectDetector
 
 simplefilter(action="ignore")
 
-class Dino(Owlv2):
+class Dino(ObjectDetector):
   MODEL_NAME = "IDEA-Research/grounding-dino-base"
-  OBJECT_LABELS_OUT = sorted(list(DObs.OBJECTS.keys()))
-  OBJECT_LABELS_IN = [DObs.OBJECTS[l]["terms"] for l in OBJECT_LABELS_OUT]
-  OBJECT_THOLDS = [[DObs.OBJECTS[l]["threshold"] for t in DObs.OBJECTS[l]["terms"]] for l in OBJECT_LABELS_OUT]
 
-  def __init__(self, model=None):
-    model_name = Dino.MODEL_NAME if model is None else model
-    self.processor = AutoProcessor.from_pretrained(model_name)
-    self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_name).to(Owlv2.DEVICE)
+  OBJECT_MIN_D = 0.02
+  OBJECT_MAX_D = 0.50
 
   @classmethod
-  def find_index(cls, lst, item):
-    try:
-      return lst.index(item)
-    except ValueError:
-      return -1
+  def size_score_threshold(cls, score, label_idx, box_pct, tholds):
+    box_width = box_pct[2] - box_pct[0]
+    box_height = box_pct[3] - box_pct[1]
+    good_max = box_width < cls.OBJECT_MAX_D and box_height < cls.OBJECT_MAX_D
+    super_result = super().size_score_threshold(score, label_idx, box_pct, tholds)
+    return good_max and super_result
 
-  def run_object_detection(self, img, labels, tholds):
+  def __init__(self, model=None, all_labels=None):
+    super().__init__(model, all_labels)
+    model_name = Dino.MODEL_NAME if model is None else model
+    self.processor = AutoProcessor.from_pretrained(model_name)
+    self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_name).to(ObjectDetector.DEVICE)
+
+  def run_object_detection(self, img, labels, tholds, combined_label):
     labels_str = " . ".join(labels)
+    detected_objs = super().run_object_detection(img, labels_str, tholds, combined_label)
 
-    inputs = self.processor(text=labels_str, images=img, return_tensors="pt").to(Owlv2.DEVICE)
-    with no_grad():
-      outputs = self.model(**inputs)
-
-    res = self.processor.post_process_grounded_object_detection(outputs=outputs, target_sizes=[img.size[::-1]])
-    res[0]["scores"] = res[0]["scores"].tolist()
-    res[0]["labels"] = [Dino.find_index(labels, l) for l in res[0]["text_labels"]]
-
-    slbs = zip(res[0]["scores"], res[0]["labels"], res[0]["boxes"])
-    iw, ih = img.size
-
-    detected_objs = [
-      {
-        "score": round(s, 3),
-        "label": labels[l],
-        "box": Owlv2.px_to_pct(b, iw, ih)
-      }
-      for s,l,b in slbs if Owlv2.threshold(s, l, b, tholds, iw, ih, min_d=0.02)
+    detected_objs_aligned = [
+      slb for slb in detected_objs if self.alignment_threshold(slb["box"], img, combined_label)
     ]
-    return detected_objs
+
+    return detected_objs_aligned

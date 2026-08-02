@@ -40,6 +40,14 @@ class Owlv2Objects:
     OBJECTS_PEOPLE,
   ]
 
+# Outside after class definition so comprehensions work
+_OBJECTS = Owlv2Objects.OBJECTS
+_OBJECT_LABELS_OUT = sorted([l for ls in _OBJECTS for l in ls.keys()])
+_OBJECT_LABELS_IN = [sorted(o.keys()) for o in _OBJECTS]
+_OBJECT_THOLDS = [[_OBJECTS[i][k] for k in oli] for i,oli in enumerate(_OBJECT_LABELS_IN)]
+Owlv2Objects.OBJECT_LABELS_OUT = _OBJECT_LABELS_OUT
+Owlv2Objects.OBJECT_LABELS_IN = _OBJECT_LABELS_IN
+Owlv2Objects.OBJECT_THOLDS = _OBJECT_THOLDS
 
 class DinoObjects:
   OBJECTS = {
@@ -50,7 +58,6 @@ class DinoObjects:
         "flying bird",
         "perched bird",
         "waterfowl",
-        "game bird",
       ],
       "threshold": 0.2,
     },
@@ -64,7 +71,7 @@ class DinoObjects:
         "mongrel",
         "domestic dog",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "horse": {
@@ -76,7 +83,7 @@ class DinoObjects:
         "mare",
         "pony",
       ],
-      "threshold": 0.20,
+      "threshold": 0.125
     },
 
     "ox": {
@@ -89,10 +96,22 @@ class DinoObjects:
         "cow",
         "draft animal",
       ],
-      "threshold": 0.20,
+      "threshold": 0.125
     },
 
-    "human": {
+    "fish": {
+      "terms": [
+        "fish",
+        "fishes",
+        "aquatic animal"
+        "caught fish",
+        "whole fish",
+        "dead fish",
+      ],
+      "threshold": 0.175
+    },
+
+    "human figure": {
       "terms": [
         "person",
         "human",
@@ -101,6 +120,8 @@ class DinoObjects:
         "child",
         "people",
         "human figure",
+        "angel",
+        "saint",
       ],
       "threshold": 0.20,
     },
@@ -114,20 +135,19 @@ class DinoObjects:
         "grove",
         "oak tree",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "palm tree": {
       "terms": [
         "palm tree",
-        "palm",
         "palm trees",
         "date palm",
         "tropical tree",
         "coconut palm",
         "palm grove"
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "conifer": {
@@ -139,7 +159,7 @@ class DinoObjects:
         "fir tree",
         "spruce tree",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "flower": {
@@ -153,10 +173,10 @@ class DinoObjects:
         "bouquet",
         "floral arrangement",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
-    "fruits": {
+    "fruit": {
       "terms": [
         "fruit",
         "fruits",
@@ -167,7 +187,7 @@ class DinoObjects:
         "pear",
         "citrus",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "shrubbery": {
@@ -179,7 +199,7 @@ class DinoObjects:
         "hedge",
         "thicket",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "face": {
@@ -191,20 +211,19 @@ class DinoObjects:
         "face mask",
         "masquerade mask",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "hand": {
       "terms": [
         "hand",
         "hands",
-         "human hand",
-         "fingers",
-         "palm",
-         "glove",
-         "gloves"
+        "human hand",
+        "fingers",
+        "glove",
+        "gloves"
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
     "foot": {
@@ -216,27 +235,50 @@ class DinoObjects:
         "footwear",
         "boot",
       ],
-      "threshold": 0.20,
+      "threshold": 0.15
     },
 
-    "torso": {
+    "bare torso": {
       "terms": [
         "exposed torso",
         "bare torso",
-        "naked chest",
-        "bare chest",
         "naked torso",
       ],
       "threshold": 0.30,
     },
 
-    "back": {
+    "bare buttocks": {
       "terms": [
-        "bare back",
-        "exposed back",
-        "naked back",
-        "exposed shoulders",
+        "bare buttocks",
+        "exposed buttocks",
+        "naked buttocks",
+        "naked butt",
+        "exposed butt",
+      ],
+      "threshold": 0.40,
+    },
+
+    "bare breast": {
+      "terms": [
+        "bare breast",
+        "exposed breast",
+        "naked breast",
+        "breast",
+        "breasts",
+        "nipple",
       ],
       "threshold": 0.30,
     },
   }
+
+# Outside after class definition so comprehensions work
+_OBJECTS = DinoObjects.OBJECTS
+_OBJECT_LABELS_OUT = sorted(list(_OBJECTS.keys()))
+_OBJECT_LABELS_IN = [_OBJECTS[l]["terms"] for l in _OBJECT_LABELS_OUT]
+_OBJECT_THOLDS = [[_OBJECTS[l]["threshold"] for t in _OBJECTS[l]["terms"]] for l in _OBJECT_LABELS_OUT]
+_OBJECT_LABELS_IN2OUT = { lin: lout for lout in _OBJECT_LABELS_OUT for lin in _OBJECTS[lout]["terms"] }
+
+DinoObjects.OBJECT_LABELS_OUT = _OBJECT_LABELS_OUT
+DinoObjects.OBJECT_LABELS_IN = _OBJECT_LABELS_IN
+DinoObjects.OBJECT_THOLDS = _OBJECT_THOLDS
+DinoObjects.OBJECT_LABELS_IN2OUT = _OBJECT_LABELS_IN2OUT

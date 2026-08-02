@@ -18,6 +18,7 @@ from models.LlamaVision import LlamaVision
 from models.Owlv2 import Owlv2
 from models.SigLip2 import SigLip2
 
+from params.detect import Owlv2Objects, DinoObjects
 
 class Museum:
   @classmethod
@@ -187,11 +188,15 @@ class Museum:
     qids = sorted(list(museum_data.keys()))
     print(len(qids), "images")
 
-    if not hasattr(cls, "omodel"):
+    if not hasattr(cls, "model"):
       if model == "owlv2":
-        cls.omodel = Owlv2("google/owlv2-base-patch16")
+        cls.model = Owlv2("google/owlv2-base-patch16")
+        cls.model_objects = Owlv2Objects
       elif model == "dino":
-        cls.omodel = Dino("IDEA-Research/grounding-dino-base")
+        cls.model = Dino("IDEA-Research/grounding-dino-base")
+        cls.model_objects = DinoObjects
+      else:
+        raise Exception(f"model '{model}' not supported")
 
     for cnt,qid in enumerate(qids):
       if cnt % 100 == 0:
@@ -214,8 +219,8 @@ class Museum:
       image = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
 
       model_objects = []
-      for labels,tholds in zip(cls.omodel.OBJS_LABELS_IN, cls.omodel.OBJS_THOLDS):
-        model_objects += cls.omodel.iou_objects(image, labels, tholds)
+      for labels,tholds in zip(cls.model_objects.OBJECT_LABELS_IN, cls.model_objects.OBJECT_THOLDS):
+        model_objects += cls.model.iou_objects(image, labels, tholds, iou_per_label=False)
 
       object_data[qid][model] = model_objects
 
@@ -224,7 +229,7 @@ class Museum:
       for objs in object_data[qid].values():
         all_objects += objs
 
-      all_objects_ioud = cls.omodel.filter_by_iou(all_objects, iou_thold=0.55, iou_per_label=True)
+      all_objects_ioud = cls.model.filter_by_iou(all_objects, iou_thold=0.55, iou_per_label=True)
       object_data[qid]["all"] = all_objects_ioud
 
       with open(object_path, "w", encoding="utf-8") as of:
