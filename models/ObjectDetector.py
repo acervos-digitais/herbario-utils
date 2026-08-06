@@ -120,10 +120,10 @@ class ObjectDetector:
     if all_labels:
       self.all_labels = all_labels
       self.siglip = SigLip2()
-      # TODO: pre-compute embeddings for all output labels
-      self.all_labels_embeddings = all_labels
+      # pre-compute embeddings for all output labels
+      self.all_labels_embeddings = self.siglip.get_text_embedding(all_labels)
 
-  def alignment_threshold(self, box_pct, img, predicted_label):
+  def alignment_threshold(self, box_pct, img, predicted_label, logits_abs_thold=-2.0, logits_rel_thold=2.0):
     iw, ih = img.size
     x0,y0,x1,y1 = box_pct
     box_width = x1 - x0
@@ -143,7 +143,7 @@ class ObjectDetector:
     all_logits_ordered = [int(logits[i]*100)/100 for i in (-logits).argsort()]
     logits_margin = all_logits_ordered[0] - all_logits_ordered[1]
 
-    return predicted_label_idx == logit_label_idx and logits.max() > -8.0 and logits_margin > 1.0
+    return predicted_label_idx == logit_label_idx and logits.max() > logits_abs_thold and logits_margin > logits_rel_thold
 
   def run_object_detection(self, img, model_labels, tholds, combined_label=None):
     # Make Labels Great Again

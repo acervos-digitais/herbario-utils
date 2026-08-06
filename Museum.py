@@ -11,7 +11,7 @@ from utils.color_utils import get_dominant_colors
 from utils.data_utils import get_tsne_embeddings
 from utils.date_utils import get_year
 
-from models.CLIP import Clip
+from models.Clip import Clip
 from models.Dino import Dino
 from models.EnPt import EnPt, PtEn, PartOfSpeech
 from models.LlamaVision import LlamaVision
@@ -192,9 +192,11 @@ class Museum:
       if model == "owlv2":
         cls.model = Owlv2("google/owlv2-base-patch16")
         cls.model_objects = Owlv2Objects
+        cls.model_combined_labels = [None for x in cls.model_objects.OBJECT_THOLDS]
       elif model == "dino":
-        cls.model = Dino("IDEA-Research/grounding-dino-base")
+        cls.model = Dino("IDEA-Research/grounding-dino-base", all_labels=DinoObjects.OBJECT_LABELS_OUT)
         cls.model_objects = DinoObjects
+        cls.model_combined_labels = [x for x in cls.model_objects.OBJECT_LABELS_OUT]
       else:
         raise Exception(f"model '{model}' not supported")
 
@@ -219,8 +221,8 @@ class Museum:
       image = PImageOps.exif_transpose(PImage.open(img_path).convert("RGB"))
 
       model_objects = []
-      for labels,tholds in zip(cls.model_objects.OBJECT_LABELS_IN, cls.model_objects.OBJECT_THOLDS):
-        model_objects += cls.model.iou_objects(image, labels, tholds, iou_per_label=False)
+      for labels,tholds,combined_label in zip(cls.model_objects.OBJECT_LABELS_IN, cls.model_objects.OBJECT_THOLDS, cls.model_combined_labels):
+        model_objects += cls.model.iou_objects(image, labels, tholds, combined_label=combined_label, iou_per_label=False)
 
       object_data[qid][model] = model_objects
 

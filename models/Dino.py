@@ -8,8 +8,8 @@ simplefilter(action="ignore")
 class Dino(ObjectDetector):
   MODEL_NAME = "IDEA-Research/grounding-dino-base"
 
-  OBJECT_MIN_D = 0.02
-  OBJECT_MAX_D = 0.50
+  OBJECT_MIN_D = 0.01
+  OBJECT_MAX_D = 0.33
 
   @classmethod
   def size_score_threshold(cls, score, label_idx, box_pct, tholds):
@@ -30,7 +30,7 @@ class Dino(ObjectDetector):
     detected_objs = super().run_object_detection(img, labels_str, tholds, combined_label)
 
     detected_objs_aligned = [
-      slb for slb in detected_objs if self.alignment_threshold(slb["box"], img, combined_label)
+      slb for slb in detected_objs if self.alignment_threshold(slb["box"], img, combined_label, logits_abs_thold=-8.0, logits_rel_thold=0.5)
     ]
 
     return detected_objs_aligned
