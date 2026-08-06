@@ -48,10 +48,12 @@ _OBJECT_THOLDS = [[_OBJECTS[i][k] for k in oli] for i,oli in enumerate(_OBJECT_L
 Owlv2Objects.OBJECT_LABELS_OUT = _OBJECT_LABELS_OUT
 Owlv2Objects.OBJECT_LABELS_IN = _OBJECT_LABELS_IN
 Owlv2Objects.OBJECT_THOLDS = _OBJECT_THOLDS
+Owlv2Objects.OBJECT_THOLDS
 
 class DinoObjects:
   OBJECTS = {
     "bird": {
+      "label": "bird",
       "terms": [
         "bird",
         "fowl",
@@ -63,6 +65,7 @@ class DinoObjects:
     },
 
     "dog": {
+      "label": "dog",
       "terms": [
         "dog",
         "canine",
@@ -75,6 +78,7 @@ class DinoObjects:
     },
 
     "horse": {
+      "label": "horse",
       "terms": [
         "horse",
         "equine",
@@ -87,6 +91,7 @@ class DinoObjects:
     },
 
     "ox": {
+      "label": "ox",
       "terms": [
         "ox",
         "oxen",
@@ -100,6 +105,7 @@ class DinoObjects:
     },
 
     "fish": {
+      "label": "fish",
       "terms": [
         "fish",
         "fishes",
@@ -112,6 +118,7 @@ class DinoObjects:
     },
 
     "human figure": {
+      "label": "painting of human",
       "terms": [
         "person",
         "human",
@@ -127,6 +134,7 @@ class DinoObjects:
     },
 
     "tree": {
+      "label": "tree",
       "terms": [
         "tree",
         "tree trunk",
@@ -139,6 +147,7 @@ class DinoObjects:
     },
 
     "palm tree": {
+      "label": "palm tree",
       "terms": [
         "palm tree",
         "palm trees",
@@ -151,6 +160,7 @@ class DinoObjects:
     },
 
     "conifer": {
+      "label": "conifer",
       "terms": [
         "conifer",
         "pine tree",
@@ -163,6 +173,7 @@ class DinoObjects:
     },
 
     "flower": {
+      "label": "flower",
       "terms": [
         "flower",
         "flowers",
@@ -177,6 +188,7 @@ class DinoObjects:
     },
 
     "fruit": {
+      "label": "fruit",
       "terms": [
         "fruit",
         "fruits",
@@ -191,6 +203,7 @@ class DinoObjects:
     },
 
     "shrubbery": {
+      "label": "shrub",
       "terms": [
         "shrub",
         "shrubbery",
@@ -203,6 +216,7 @@ class DinoObjects:
     },
 
     "face": {
+      "label": "human face",
       "terms": [
         "face",
         "human face",
@@ -215,6 +229,7 @@ class DinoObjects:
     },
 
     "hand": {
+      "label": "human hand",
       "terms": [
         "hand",
         "hands",
@@ -227,6 +242,7 @@ class DinoObjects:
     },
 
     "foot": {
+      "label": "human foot",
       "terms": [
         "foot",
         "feet",
@@ -239,6 +255,7 @@ class DinoObjects:
     },
 
     "bare torso": {
+      "label": "naked human torso",
       "terms": [
         "exposed torso",
         "bare torso",
@@ -248,6 +265,7 @@ class DinoObjects:
     },
 
     "bare buttocks": {
+      "label": "naked human buttocks",
       "terms": [
         "bare buttocks",
         "exposed buttocks",
@@ -259,6 +277,7 @@ class DinoObjects:
     },
 
     "bare breast": {
+      "label": "naked human breast",
       "terms": [
         "bare breast",
         "exposed breast",

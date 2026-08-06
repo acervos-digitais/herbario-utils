@@ -439,9 +439,9 @@ class Museum:
 
 
   @classmethod
-  def export_object_crops(cls, museum_info):
+  def export_object_crops(cls, museum_info, model):
     cls.prep_dirs(museum_info)
-    img_path_crops = path.join(cls.DIRS["imgs"], "crops")
+    img_path_crops = path.join(cls.DIRS["imgs"], f"crops_{model}")
     makedirs(img_path_crops, exist_ok=True)
 
     obj_files = sorted([f for f in listdir(cls.DIRS["objects"]) if f.endswith(".json")])
@@ -451,7 +451,7 @@ class Museum:
 
       qid = fname.replace(".json", "")
       with open(path.join(cls.DIRS["objects"], fname), "r", encoding="utf-8") as inp:
-        iboxes = json.load(inp)[qid]["all"]
+        iboxes = json.load(inp)[qid][model]
 
       if len(iboxes) < 1:
         continue

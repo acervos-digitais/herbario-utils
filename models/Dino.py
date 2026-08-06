@@ -2,6 +2,7 @@ from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
 from warnings import simplefilter
 
 from .ObjectDetector import ObjectDetector
+from params.detect import DinoObjects
 
 simplefilter(action="ignore")
 
@@ -32,5 +33,8 @@ class Dino(ObjectDetector):
     detected_objs_aligned = [
       slb for slb in detected_objs if self.alignment_threshold(slb["box"], img, combined_label, logits_abs_thold=-8.0, logits_rel_thold=0.5)
     ]
+
+    for idx,obj in enumerate(detected_objs_aligned):
+      detected_objs_aligned[idx]["label"] = DinoObjects.OBJECTS[obj["label"]]["label"]
 
     return detected_objs_aligned
