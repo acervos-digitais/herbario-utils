@@ -105,6 +105,18 @@ def cluster_centers_from_clusters_info(clusters_info, embedding_data):
   return centers
 
 
+def get_cluster_variances(X, y):
+  num_clusters = len(np.unique(y))
+  variance = []
+  for i in range(num_clusters):
+    ith_cluster_embeddigs = X[y == i]
+    mPCA = PCA(n_components=32, random_state=10)
+    _ = mPCA.fit_transform(ith_cluster_embeddigs)
+    cumulative_variance = mPCA.explained_variance_ratio_.cumsum()
+    variance.append([round(v,6) for v in cumulative_variance.tolist()[:8]])
+  return variance
+
+
 def plot_clusters(clusters, pcas, title="", color_clusters=True):
   sizes = [0 if c < 0 else 24 for c in clusters]
   dims = pcas.shape[1]
@@ -135,14 +147,18 @@ def plot_clusters(clusters, pcas, title="", color_clusters=True):
     ax.set_title(title)
     plt.show()
 
+def get_silhouette_scores(X, y):
+  mplot, scores = create_silhouette_plot(X, y)
+  mplot.close()
+  return scores
 
 def save_silhouette_plot(X, y, file_path, title):
-  mplot = create_silhouette_plot(X, y, title=title)
+  mplot, _ = create_silhouette_plot(X, y, title=title)
   mplot.savefig(file_path, dpi=300, bbox_inches="tight")
   mplot.close()
 
 def display_silhouette_plot(X, y, title):
-  mplot = create_silhouette_plot(X, y, title=title)
+  mplot, _ = create_silhouette_plot(X, y, title=title)
   mplot.show()
 
 def create_silhouette_plot(X, y, title=None):
@@ -153,9 +169,17 @@ def create_silhouette_plot(X, y, title=None):
   plot_title = "Silhouette Plot" if title is None else title
 
   y_lower = 10
+  sil_scores = []
   for i in range(num_clusters):
     ith_cluster_silhouette_values = sample_silhouette_values[y == i]
     ith_cluster_silhouette_values.sort()
+    sil_scores.append({
+      "min": float(ith_cluster_silhouette_values.min()),
+      "max": float(ith_cluster_silhouette_values.max()),
+      "mean": float(ith_cluster_silhouette_values.mean()),
+      "std": float(ith_cluster_silhouette_values.std()),
+      "median": float(np.median(ith_cluster_silhouette_values)),
+    })
 
     size_cluster_i = ith_cluster_silhouette_values.shape[0]
     y_upper = y_lower + size_cluster_i
@@ -186,7 +210,7 @@ def create_silhouette_plot(X, y, title=None):
   plt.yticks([])
   plt.xlim([min(-0.1, sample_silhouette_values.min()), sample_silhouette_values.max()])
   plt.xticks([-0.1] + list(np.arange(0, maxx+0.1, 0.2)))
-  return plt
+  return plt, sil_scores
 
 
 def visualize_pca_clusters(raw_embeddings, image_paths, n_clusters=8, grid_dim=8):

@@ -8,7 +8,8 @@ from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_distances, euclidean_distances
 from sklearn.preprocessing import Normalizer
 
-from .cluster_utils import save_silhouette_plot, pca_kmeans, raw_kmeans, tsne_kmeans, umap_kmeans
+from .cluster_utils import get_cluster_variances, get_silhouette_scores, save_silhouette_plot
+from .cluster_utils import  pca_kmeans, raw_kmeans, tsne_kmeans, umap_kmeans
 from models.LlamaVision import LlamaVision
 from models.SigLip2 import SigLip2
 
@@ -211,12 +212,15 @@ class Clusterer:
       if silhouette_img_dir:
         save_silhouette_plot(red_embs, clusters, f"./{silhouette_img_dir}/{dim_red}-{nc}.png", f"{dim_red} - {nc} clusters")
 
+      cluster_scores = get_silhouette_scores(red_embs, clusters)
+      cluster_variances = get_cluster_variances(red_embs, clusters)
+
       if describe == "gemma3":
-        descriptions = {describe: self.describe_by_vlm(ids_by_distance)}
+        cluster_descriptions = {describe: self.describe_by_vlm(ids_by_distance)}
       elif describe == "siglip2":
-        descriptions = {describe: self.describe_by_siglip2(ids_by_distance)}
+        cluster_descriptions = {describe: self.describe_by_siglip2(ids_by_distance)}
       elif path.isfile(self.terms_file_path):
-        descriptions = {
+        cluster_descriptions = {
           "gemma3" : self.describe_by_vlm(ids_by_distance),
           "siglip2": self.describe_by_siglip2(ids_by_distance, words_offset=2),
           "tate": self.describe_by_terms(ids_by_distance, "tate"),
@@ -227,15 +231,20 @@ class Clusterer:
           "sorelle": self.describe_by_terms(ids_by_distance, "sorelle"),
         }
       else:
-        descriptions = {
+        cluster_descriptions = {
           "gemma3" : self.describe_by_vlm(ids_by_distance),
           "siglip2": self.describe_by_siglip2(ids_by_distance, words_offset=2),
         }
 
       self.cluster_data[nc][dim_red] = {
         "images": {id: {"cluster": c, "distances": [round(d,6) for d in ds]} for  id,c,ds in i_c_d},
-        "clusters": {"descriptions": descriptions}
+        "clusters": {
+          "descriptions": cluster_descriptions,
+          "scores": cluster_scores,
+          "variances": cluster_variances,
+        }
       }
+
 
       if self.siglip is not None:
         self.siglip.cleanup()
