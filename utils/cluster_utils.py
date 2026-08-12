@@ -1,12 +1,14 @@
 import numpy as np
 
-from matplotlib import pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 
 from random import sample, seed
 
 from scipy.optimize import minimize
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.manifold import TSNE
+from sklearn.metrics import silhouette_score as skl_silhouette_score, silhouette_samples as skl_silhouette_samples
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import Normalizer
 
@@ -132,6 +134,59 @@ def plot_clusters(clusters, pcas, title="", color_clusters=True):
     ax.scatter(pcas[:,0], pcas[:,1], pcas[:,2], **plot_params)
     ax.set_title(title)
     plt.show()
+
+
+def save_silhouette_plot(X, y, file_path, title):
+  mplot = create_silhouette_plot(X, y, title=title)
+  mplot.savefig(file_path, dpi=300, bbox_inches="tight")
+  mplot.close()
+
+def display_silhouette_plot(X, y, title):
+  mplot = create_silhouette_plot(X, y, title=title)
+  mplot.show()
+
+def create_silhouette_plot(X, y, title=None):
+  sample_silhouette_values = skl_silhouette_samples(X, y)
+  silhouette_average = skl_silhouette_score(X, y)
+  num_clusters = len(np.unique(y))
+  maxx = round(sample_silhouette_values.max() / 0.2) * 0.2
+  plot_title = "Silhouette Plot" if title is None else title
+
+  y_lower = 10
+  for i in range(num_clusters):
+    ith_cluster_silhouette_values = sample_silhouette_values[y == i]
+    ith_cluster_silhouette_values.sort()
+
+    size_cluster_i = ith_cluster_silhouette_values.shape[0]
+    y_upper = y_lower + size_cluster_i
+
+    color = cm.nipy_spectral(float(i) / num_clusters)
+    plt.fill_betweenx(
+      np.arange(y_lower, y_upper),
+      0,
+      ith_cluster_silhouette_values,
+      facecolor=color,
+      edgecolor=color,
+      alpha=0.7,
+    )
+
+    # Label the silhouette plots with their cluster numbers at the middle
+    plt.text(-maxx / 10, y_lower + 0.5 * size_cluster_i, str(i))
+
+    # Compute the new y_lower for next plot
+    y_lower = y_upper + 10
+
+  plt.title(plot_title)
+  plt.xlabel("Silhouette coefficient values")
+  plt.ylabel("Cluster label")
+
+  # The vertical line for average silhouette score of all the values
+  plt.axvline(x=silhouette_average, color="red", linestyle="--")
+
+  plt.yticks([])
+  plt.xlim([min(-0.1, sample_silhouette_values.min()), sample_silhouette_values.max()])
+  plt.xticks([-0.1] + list(np.arange(0, maxx+0.1, 0.2)))
+  return plt
 
 
 def visualize_pca_clusters(raw_embeddings, image_paths, n_clusters=8, grid_dim=8):
