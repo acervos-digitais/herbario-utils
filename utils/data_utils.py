@@ -1,4 +1,5 @@
 import json
+import spacy
 
 import numpy as np
 import PIL.Image as PImage
@@ -56,11 +57,49 @@ def get_words_from_captions(data_path, model="gemma3", lang="en", categories=["a
   else:
     return [w for w,_ in words]
 
+def get_words_from_unstructured(data_path, model="gemma3", lang="en", return_counts=False):
+  with open(data_path, "r", encoding="utf-8") as ifp:
+    odata = json.load(ifp)
 
-def get_words_from_lists(file_path, list_name):
+  nlp = spacy.load("en_core_web_md")
+
+  term_counts = {}
+  for k in odata.keys():
+    caption_en = odata[k]["captions"][model][lang]
+    if "unstructured" not in caption_en or len(caption_en["unstructured"][0]) < 3:
+      continue
+
+    doc = nlp(caption_en["unstructured"][0])
+
+    words = [
+      token.text.lower()
+      for token in doc
+      if token.is_alpha and not token.is_stop and not token.text.lower().endswith("ing")
+    ]
+
+    filtered_chunks = [
+      " ".join(
+        token.text.lower()
+        for token in chunk
+        if token.is_alpha and not token.is_stop
+      )
+      for chunk in doc.noun_chunks
+    ]
+
+    for term in set(words + filtered_chunks):
+      term_counts[term] = term_counts.get(term, 0) + 1
+
+  terms_sorted = sorted(term_counts.keys(), key=lambda x:term_counts[x], reverse=True)
+
+  if return_counts:
+    return [[t, term_counts[t]] for t in terms_sorted]
+  else:
+    return terms_sorted
+
+def get_words_from_lists(file_path, list_name, lang="en"):
   with open(file_path, "r", encoding="utf-8") as ifp:
     obj_data = json.load(ifp)
-  return obj_data[list_name]
+  return obj_data[list_name][lang]
 
 
 def get_depicts_words(data_path, lang="en", return_counts=False):
@@ -216,25 +255,19 @@ class Clusterer:
       cluster_variances = get_cluster_variances(red_embs, clusters)
 
       if describe == "gemma3":
-        cluster_descriptions = {describe: self.describe_by_vlm(ids_by_distance)}
-      elif describe == "siglip2":
-        cluster_descriptions = {describe: self.describe_by_siglip2(ids_by_distance)}
-      elif path.isfile(self.terms_file_path):
         cluster_descriptions = {
-          "gemma3" : self.describe_by_vlm(ids_by_distance),
-          "siglip2": self.describe_by_siglip2(ids_by_distance, words_offset=2),
-          "tate": self.describe_by_terms(ids_by_distance, "tate"),
-          "moma": self.describe_by_terms(ids_by_distance, "moma"),
-          "gpt": self.describe_by_terms(ids_by_distance, "gpt"),
-          "artfinder": self.describe_by_terms(ids_by_distance, "artfinder"),
-          "collins": self.describe_by_terms(ids_by_distance, "collins"),
-          "sorelle": self.describe_by_terms(ids_by_distance, "sorelle"),
+          "gemma3": self.describe_by_vlm(ids_by_distance)
         }
       else:
         cluster_descriptions = {
-          "gemma3" : self.describe_by_vlm(ids_by_distance),
-          "siglip2": self.describe_by_siglip2(ids_by_distance, words_offset=2),
+          "gemma3": self.describe_by_vlm(ids_by_distance),
+          "structured": self.describe_by_structured_captions(ids_by_distance),
+          "unstructured": self.describe_by_unstructured_captions(ids_by_distance),
         }
+
+      if path.isfile(self.terms_file_path):
+        for k in ["tate", "moma", "gpt", "artfinder", "collins", "sorelle"]:
+          cluster_descriptions[k] = self.describe_by_terms(ids_by_distance, k)
 
       self.cluster_data[nc][dim_red] = {
         "images": {id: {"cluster": c, "distances": [round(d,6) for d in ds]} for  id,c,ds in i_c_d},
@@ -275,18 +308,18 @@ class Clusterer:
     return descriptions
 
 
-  def describe_by_siglip2(self, ids_by_distance, num_images=32, words_offset=0, max_words=8, word_list_limit=500):
+  def describe_by_structured_captions(self, ids_by_distance, num_images=32, words_offset=0, max_words=8, word_list_limit=500):
     if self.siglip is None:
       self.siglip = SigLip2()
 
-    if "siglip2" not in self.words:
-      self.words["siglip2"] = {
+    if "structured" not in self.words:
+      self.words["structured"] = {
         "en": get_words_from_captions(self.data_file_path, lang="en", categories=["people", "fauna", "flora"])[:word_list_limit],
         "pt": get_words_from_captions(self.data_file_path, lang="pt", categories=["people", "fauna", "flora"])[:word_list_limit],
       }
-      self.word_embeddings["siglip2"] = {
-        "en": self.siglip.get_text_embedding(self.words["siglip2"]["en"], prefix="painting with a"),
-        "pt": self.siglip.get_text_embedding(self.words["siglip2"]["pt"], prefix="pintura mostrando"),
+      self.word_embeddings["structured"] = {
+        "en": self.siglip.get_text_embedding(self.words["structured"]["en"], prefix="painting with a"),
+        "pt": self.siglip.get_text_embedding(self.words["structured"]["pt"], prefix="pintura mostrando"),
       }
 
     ids_to_avg = ids_by_distance[:, :num_images]
@@ -296,23 +329,56 @@ class Clusterer:
     descriptions = {"pt": [], "en": []}
 
     for cluster_avg in embeddings_avg:
-      tag_idxs_en = self.siglip.zero_shot(cluster_avg, self.word_embeddings["siglip2"]["en"])
-      tag_idxs_pt = self.siglip.zero_shot(cluster_avg, self.word_embeddings["siglip2"]["pt"])
-      tags_en = [self.words["siglip2"]["en"][idx] for idx in tag_idxs_en]
-      tags_pt = [self.words["siglip2"]["pt"][idx] for idx in tag_idxs_pt]
+      tag_idxs_en = self.siglip.zero_shot(cluster_avg, self.word_embeddings["structured"]["en"])
+      tag_idxs_pt = self.siglip.zero_shot(cluster_avg, self.word_embeddings["structured"]["pt"])
+      tags_en = [self.words["structured"]["en"][idx] for idx in tag_idxs_en]
+      tags_pt = [self.words["structured"]["pt"][idx] for idx in tag_idxs_pt]
       descriptions["en"].append(tags_en[words_offset : max_words + words_offset])
       descriptions["pt"].append(tags_pt[words_offset : max_words + words_offset])
 
     return descriptions
 
 
-  def describe_by_terms(self, ids_by_distance, list_name, num_images=32, words_offset=0, max_words=8, word_list_limit=800):
+  def describe_by_unstructured_captions(self, ids_by_distance, num_images=32, words_offset=0, max_words=8, word_list_limit=500):
+    if self.siglip is None:
+      self.siglip = SigLip2()
+
+    if "unstructured" not in self.words:
+      self.words["unstructured"] = {
+        "en": get_words_from_unstructured(self.data_file_path, lang="en")[:word_list_limit],
+        # "pt": get_words_from_unstructured(self.data_file_path, lang="pt")[:word_list_limit],
+      }
+      self.word_embeddings["unstructured"] = {
+        "en": self.siglip.get_text_embedding(self.words["unstructured"]["en"], prefix="painting with a"),
+        # "pt": self.siglip.get_text_embedding(self.words["unstructured"]["pt"], prefix="pintura mostrando"),
+      }
+
+    ids_to_avg = ids_by_distance[:, :num_images]
+    embeddings_to_avg = np.array([[self.embedding_data[id]["siglip2"] for id in ids] for ids in ids_to_avg])
+    embeddings_avg = embeddings_to_avg.mean(axis=1)
+
+    descriptions = {"pt": [], "en": []}
+
+    for cluster_avg in embeddings_avg:
+      tag_idxs_en = self.siglip.zero_shot(cluster_avg, self.word_embeddings["unstructured"]["en"])
+      # tag_idxs_pt = self.siglip.zero_shot(cluster_avg, self.word_embeddings["unstructured"]["pt"])
+      tags_en = [self.words["unstructured"]["en"][idx] for idx in tag_idxs_en]
+      # tags_pt = [self.words["unstructured"]["pt"][idx] for idx in tag_idxs_pt]
+      descriptions["en"].append(tags_en[words_offset : max_words + words_offset])
+      # descriptions["pt"].append(tags_pt[words_offset : max_words + words_offset])
+
+    return descriptions
+
+
+  def describe_by_terms(self, ids_by_distance, list_name, num_images=32, words_offset=0, max_words=8, word_list_limit=500):
     if list_name not in self.words:
       self.words[list_name] = {
-        "en": get_words_from_lists(self.terms_file_path, list_name)[:word_list_limit],
+        "en": get_words_from_lists(self.terms_file_path, list_name, lang="en")[:word_list_limit],
+        # "pt": get_words_from_lists(self.terms_file_path, list_name, lang="pt")[:word_list_limit],
       }
       self.word_embeddings[list_name] = {
         "en": self.siglip.get_text_embedding(self.words[list_name]["en"], prefix="painting with a"),
+        # "pt": self.siglip.get_text_embedding(self.words[list_name]["pt"], prefix="pintura mostrando"),
       }
 
     ids_to_avg = ids_by_distance[:, :num_images]

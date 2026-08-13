@@ -16,13 +16,22 @@ from umap import UMAP
 
 from PIL import Image as PImage
 
+def reorder_by_cluster_size(X, labels, centers):
+  order = np.argsort(np.bincount(labels))
+  centers_ordered = centers[order]
+  mapping = np.empty_like(order)
+  mapping[order] = np.arange(len(order))
+  labels_ordered = mapping[labels]
+  return X, labels_ordered, centers_ordered
+
+
 def raw_kmeans(emb_raw, n_clusters=8, normalize=False):
   mCluster = KMeans(n_clusters=n_clusters, random_state=1010)
 
   emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
-  emb_clusters = mCluster.fit_predict(emb_pre)
+  labels = mCluster.fit_predict(emb_pre)
 
-  return emb_pre, emb_clusters, mCluster.cluster_centers_
+  return reorder_by_cluster_size(emb_pre, labels, mCluster.cluster_centers_)
 
 
 def pca_kmeans(emb_raw, n_clusters=8, n_components=128, normalize=False):
@@ -32,9 +41,9 @@ def pca_kmeans(emb_raw, n_clusters=8, n_components=128, normalize=False):
 
   emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
   emb_reduced = mPCA.fit_transform(emb_pre)
-  emb_clusters = mCluster.fit_predict(emb_reduced)
+  labels = mCluster.fit_predict(emb_reduced)
 
-  return emb_reduced, emb_clusters, mCluster.cluster_centers_
+  return reorder_by_cluster_size(emb_reduced, labels, mCluster.cluster_centers_)
 
 
 def tsne_kmeans(emb_raw, n_clusters=8, n_components=3, perplexity=30, normalize=False):
@@ -43,9 +52,9 @@ def tsne_kmeans(emb_raw, n_clusters=8, n_components=3, perplexity=30, normalize=
 
   emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
   emb_reduced = mTSNE.fit_transform(emb_pre)
-  emb_clusters = mCluster.fit_predict(emb_reduced)
+  labels = mCluster.fit_predict(emb_reduced)
 
-  return emb_reduced, emb_clusters, mCluster.cluster_centers_
+  return reorder_by_cluster_size(emb_reduced, labels, mCluster.cluster_centers_)
 
 
 def umap_kmeans(emb_raw, n_clusters=8, n_components=64, n_neighbors=100, normalize=False):
@@ -54,9 +63,9 @@ def umap_kmeans(emb_raw, n_clusters=8, n_components=64, n_neighbors=100, normali
 
   emb_pre = Normalizer().fit_transform(emb_raw) if normalize else emb_raw
   emb_reduced = mUMAP.fit_transform(emb_pre)
-  emb_clusters = mCluster.fit_predict(emb_reduced)
+  labels = mCluster.fit_predict(emb_reduced)
 
-  return emb_reduced, emb_clusters, mCluster.cluster_centers_
+  return reorder_by_cluster_size(emb_reduced, labels, mCluster.cluster_centers_)
 
 
 def pca_agglo(emb_raw, n_clusters=8, n_components=128):
@@ -65,10 +74,10 @@ def pca_agglo(emb_raw, n_clusters=8, n_components=128):
   mCluster = AgglomerativeClustering(n_clusters=n_clusters, metric="euclidean", linkage="ward")
 
   emb_reduced = mPCA.fit_transform(emb_raw)
-  emb_clusters = mCluster.fit_predict(emb_reduced)
+  labels = mCluster.fit_predict(emb_reduced)
+  centers = np.array([emb_reduced[labels == i].mean(axis=0) for i in range(n_clusters)])
 
-  centers = np.array([emb_reduced[emb_clusters == i].mean(axis=0) for i in range(n_clusters)])
-  return emb_reduced, emb_clusters, centers
+  return reorder_by_cluster_size(emb_reduced, labels, centers)
 
 
 def cluster_center_from_dists(known_points, known_dists):
