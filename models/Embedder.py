@@ -1,7 +1,7 @@
 from gc import collect
 from PIL import Image as PImage
 
-from torch import cuda, no_grad, Tensor
+from torch import cat, cuda, no_grad, Tensor
 from torch.nn import functional as F
 from transformers import AutoModel, AutoProcessor
 from warnings import simplefilter
@@ -42,17 +42,22 @@ class Embedder:
     return img_embedding
 
 
-  def get_text_embedding(self, text, prefix=None):
+  def get_text_embedding(self, text, prefix=None, batch_size=128):
     text = [text] if type(text) == str else text
     if prefix:
       text = [f"{prefix} {t}" for t in text]
-    txt_input = self.processor(text=text, padding="max_length", max_length=64, truncation=True, return_tensors="pt").to(self.model.device)
 
-    with no_grad():
-      txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu().squeeze()
-      txt_embedding = F.normalize(txt_embedding, p=2, dim=-1)
+    embeddings = []
+    for i in range(0, len(text), batch_size):
+      batch = text[i : i + batch_size]
+      txt_input = self.processor(text=batch, padding="max_length", max_length=64, truncation=True, return_tensors="pt").to(self.model.device)
 
-    return txt_embedding
+      with no_grad():
+        txt_embedding = self.model.get_text_features(**txt_input).pooler_output.cpu().squeeze()
+        txt_embedding = F.normalize(txt_embedding, p=2, dim=-1)
+        embeddings.append(txt_embedding)
+
+    return cat(embeddings)
 
 
   def get_cosine_similarities(self, img, texts, prefix=None):

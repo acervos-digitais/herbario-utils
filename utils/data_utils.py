@@ -202,6 +202,20 @@ class Clusterer:
     if path.isfile(terms_file_path):
       with open(terms_file_path, "r", encoding="utf-8") as ifp:
         self.art_terms = json.load(ifp)
+        # combine all
+        all_terms_en = set([t.lower() for k in self.art_terms.keys() for t in self.art_terms[k]["en"]])
+        all_terms_pt = set([t.lower() for k in self.art_terms.keys() for t in self.art_terms[k]["pt"]])
+        self.art_terms["all"] = {
+          "en": list(all_terms_en),
+          "pt": list(all_terms_pt),
+        }
+        # combine vlm
+        vlm_terms_en = set([t.lower() for k in ["vlm-captions", "vlm-keywords"] for t in self.art_terms[k]["en"]])
+        vlm_terms_pt = set([t.lower() for k in ["vlm-captions", "vlm-keywords"] for t in self.art_terms[k]["pt"]])
+        self.art_terms["vlm"] = {
+          "en": list(vlm_terms_en),
+          "pt": list(vlm_terms_pt),
+        }
 
   def export_clusters(self, out_file_name, embedding_model="siglip2", dim_red=None, min_nc=4, max_nc=13, step_nc=1, describe="all", silhouette_img_dir=None):
     dim_red = "raw" if dim_red is None else dim_red.lower()
@@ -300,17 +314,19 @@ class Clusterer:
     return descriptions
 
 
-  def describe_by_word_lists(self, ids_by_distance, list_name, num_images=32, words_offset=0, max_words=8, word_list_limit=500):
+  def describe_by_word_lists(self, ids_by_distance, list_name, num_images=32, words_offset=0, max_words=8, word_list_limit=0):
     if self.siglip is None:
       self.siglip = SigLip2()
 
     if list_name not in self.term_embeddings:
-      prefix_en = "painting with a" if "structure" in list_name else "an example of"
-      prefix_pt = "pintura mostrando" if "structure" in list_name else "um exemplo de"
+      prefix_en = "painting with a" if "vlm" in list_name else "an example of"
+      prefix_pt = "pintura mostrando" if "vlm" in list_name else "um exemplo de"
+      len_en = len(self.art_terms[list_name]["en"]) if word_list_limit < 1 else word_list_limit
+      len_pt = len(self.art_terms[list_name]["pt"]) if word_list_limit < 1 else word_list_limit
 
       self.term_embeddings[list_name] = {
-        "en": self.siglip.get_text_embedding(self.art_terms[list_name]["en"][:word_list_limit], prefix=prefix_en),
-        "pt": self.siglip.get_text_embedding(self.art_terms[list_name]["pt"][:word_list_limit], prefix=prefix_pt),
+        "en": self.siglip.get_text_embedding(self.art_terms[list_name]["en"][:len_en], prefix=prefix_en),
+        "pt": self.siglip.get_text_embedding(self.art_terms[list_name]["pt"][:len_pt], prefix=prefix_pt),
       }
 
     ids_to_avg = ids_by_distance[:, :num_images]
