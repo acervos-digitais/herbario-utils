@@ -2,8 +2,22 @@ import matplotlib.cm as cm
 
 import numpy as np
 
+from os import listdir, path
 from PIL import Image as PImage
 from scipy.interpolate import RBFInterpolator
+
+# ratioH returs h/w, useful for calculating heights
+def get_image_ratios(img_path, ratioH = True):
+  fnames = sorted([f for f in listdir(img_path) if f.endswith("jpg")])
+
+  ratio_data = {}
+  for f in fnames:
+    id = f.replace(".jpg", "")
+    img = PImage.open(path.join(img_path, f))
+    iw,ih = img.size
+    ratio_data[id] = round(ih/iw, 4) if ratioH else round(iw/ih, 4)
+
+  return ratio_data
 
 def scale_2d_array(array, size, sampling=PImage.Resampling.BILINEAR):
   if len(array.shape) == 1:

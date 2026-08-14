@@ -178,11 +178,12 @@ def create_silhouette_plot(X, y, title=None):
   plot_title = "Silhouette Plot" if title is None else title
 
   y_lower = 10
-  sil_scores = []
+  raw_scores = [round(s,4) for s in sample_silhouette_values.tolist()]
+  processed_scores = []
   for i in range(num_clusters):
     ith_cluster_silhouette_values = sample_silhouette_values[y == i]
     ith_cluster_silhouette_values.sort()
-    sil_scores.append({
+    processed_scores.append({
       "min": float(ith_cluster_silhouette_values.min()),
       "max": float(ith_cluster_silhouette_values.max()),
       "mean": float(ith_cluster_silhouette_values.mean()),
@@ -219,7 +220,7 @@ def create_silhouette_plot(X, y, title=None):
   plt.yticks([])
   plt.xlim([min(-0.1, sample_silhouette_values.min()), sample_silhouette_values.max()])
   plt.xticks([-0.1] + list(np.arange(0, maxx+0.1, 0.2)))
-  return plt, sil_scores
+  return plt, {"raw": raw_scores, "processed": processed_scores}
 
 
 def visualize_pca_clusters(raw_embeddings, image_paths, n_clusters=8, grid_dim=8):

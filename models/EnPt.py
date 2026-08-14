@@ -1,17 +1,27 @@
+from torch import cuda, no_grad
 from transformers import pipeline
+from transformers import MarianMTModel, MarianTokenizer
 from warnings import simplefilter
 
 simplefilter(action="ignore")
 
 class EnPt:
   MODEL_NAME = "Helsinki-NLP/opus-mt-tc-big-en-pt"
+  DEVICE = "cuda" if cuda.is_available() else "cpu"
 
   def __init__(self):
-    self.pipeline = pipeline(model=EnPt.MODEL_NAME, device="cuda")
+    self.model = MarianMTModel.from_pretrained(EnPt.MODEL_NAME).to(EnPt.DEVICE)
+    self.tokenizer = MarianTokenizer.from_pretrained(EnPt.MODEL_NAME)
 
   def translate(self, txt_en):
     to_pt = ">>por<< " + txt_en
-    return self.pipeline(to_pt)[0]["translation_text"]
+    inputs = self.tokenizer(to_pt, return_tensors="pt", padding=True).to(self.model.device)
+
+    txt_pt = txt_en
+    with no_grad():
+      outputs = self.model.generate(**inputs)
+      txt_pt = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return txt_pt
 
 class PtEn:
   # tokenizer = AutoTokenizer.from_pretrained("unicamp-dl/translation-pt-en-t5")
